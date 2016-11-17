@@ -2,8 +2,6 @@ package com.codegans.ai.cup2016.navigator;
 
 import com.codegans.ai.cup2016.model.Point;
 
-import java.util.stream.Stream;
-
 import static java.lang.StrictMath.hypot;
 
 /**
@@ -15,56 +13,62 @@ import static java.lang.StrictMath.hypot;
 public class AStarNode implements Comparable<AStarNode> {
     protected final int x;
     protected final int y;
-    private final AStarNode previous;
-    private double hCost;
-    private double gCost;
+    private final int targetX;
+    private final int targetY;
+    private final double hCost;
+    private final double gCost;
+    private AStarNode previous;
 
-    public AStarNode(int x, int y) {
-        this(x, y, null);
+    public AStarNode(Point start, Point target, int step) {
+        this(
+                StrictMath.floorDiv((int) start.x, step) * step,
+                StrictMath.floorDiv((int) start.y, step) * step,
+                StrictMath.floorDiv((int) target.x, step) * step,
+                StrictMath.floorDiv((int) target.y, step) * step,
+                null
+        );
     }
 
     public AStarNode(int x, int y, AStarNode previous) {
+        this(x, y, previous.targetX, previous.targetY, previous);
+    }
+
+    private AStarNode(int x, int y, int targetX, int targetY, AStarNode previous) {
         this.x = x;
         this.y = y;
+        this.targetX = targetX;
+        this.targetY = targetY;
         this.previous = previous;
-        this.gCost = adjacent(previous);
+        this.hCost = hypot(x - targetX, y - targetY);
+        this.gCost = previous == null ? 0 : previous.traversedCost() + previous.distance(this);
     }
 
     public double cost() {
         return hCost + gCost;
     }
 
+    public double estimatedCost() {
+        return hCost;
+    }
+
+    public double traversedCost() {
+        return gCost;
+    }
+
     public AStarNode previous() {
         return previous;
     }
 
-    public Stream<AStarNode> neighbors() {
-        Stream<AStarNode> stream = Stream.<AStarNode>builder()
-                .add(new AStarNode(x - 1, y - 1, this))
-                .add(new AStarNode(x - 1, y, this))
-                .add(new AStarNode(x, y - 1, this))
-                .add(new AStarNode(x, y + 1, this))
-                .add(new AStarNode(x + 1, y, this))
-                .add(new AStarNode(x + 1, y + 1, this))
-                .build();
-
-        if (previous != null) {
-            return stream.filter(previous::equals);
-        }
-
-        return stream;
+    public void previous(AStarNode previous) {
+        this.previous = previous;
     }
 
-    protected double adjacent(AStarNode target) {
+    public boolean isTarget() {
+        return x == targetX && y == targetY;
+    }
+
+    private double distance(AStarNode target) {
         return target == null ? 0 : hypot(x - target.x, y - target.y);
-    }
-
-    protected double estimate(AStarNode target) {
-        return target == null ? 0 : hypot(x - target.x, y - target.y);
-    }
-
-    public void update(AStarNode target) {
-        hCost = estimate(target);
     }
 
     public Point toPoint() {

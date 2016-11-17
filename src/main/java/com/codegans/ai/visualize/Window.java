@@ -1,12 +1,16 @@
 package com.codegans.ai.visualize;
 
-import com.codegans.ai.cup2016.Navigator;
+import com.codegans.ai.cup2016.log.Logger;
+import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
+import com.codegans.ai.cup2016.navigator.PathFinder;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.canvas.Canvas;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
@@ -27,10 +31,7 @@ import model.World;
 
 import java.util.Collection;
 
-import static javafx.scene.paint.Color.GRAY;
-import static javafx.scene.paint.Color.GREEN;
-import static javafx.scene.paint.Color.RED;
-import static javafx.scene.paint.Color.YELLOW;
+import static javafx.scene.paint.Color.*;
 
 /**
  * JavaDoc here
@@ -39,6 +40,7 @@ import static javafx.scene.paint.Color.YELLOW;
  * @since 20.11.2015 17:02
  */
 public class Window extends Application {
+    private static final Logger LOG = LoggerFactory.getLogger();
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -83,13 +85,33 @@ public class Window extends Application {
 
                     root.getChildren().add(me);
 
-                    Navigator navigator = new Navigator();
+                    Canvas canvas = new Canvas(4000, 4000);
 
-                    Wizard wizard = setupWizard(me);
+                    root.getChildren().add(canvas);
 
-                    Collection<Point> points = navigator.path(wizard, setupWorld(wizard, root.getChildren()));
+                    Thread calc = new Thread(() -> {
+                        Wizard wizard = setupWizard(me);
 
-                    points.stream().map(e -> new Circle(e.x, e.y, me.getRadius())).peek(e -> e.setFill(YELLOW)).forEach(e -> root.getChildren().add(e));
+                        World world = setupWorld(wizard, root.getChildren());
+
+                        long time = System.currentTimeMillis();
+                        LOG.printf("Started...%n");
+
+                        Collection<Point> points = PathFinder.aStar().traverse(world, new Point(wizard), new Point(world.getBuildings()[0]), me.getRadius(), e -> {
+                            Circle point = new Circle(e.x, e.y, 1);
+
+                            point.setFill(DARKBLUE);
+
+                            Platform.runLater(() -> canvas.getGraphicsContext2D().getPixelWriter().setColor((int) e.x, (int) e.y, DARKBLUE));
+                        });
+
+                        LOG.printf("Completed: %d ms%n", System.currentTimeMillis() - time);
+
+                        points.stream().map(e -> new Circle(e.x, e.y, 2)).peek(e -> e.setFill(YELLOW)).forEach(e -> Platform.runLater(() -> root.getChildren().add(e)));
+                    });
+
+                    calc.setDaemon(true);
+                    calc.start();
 
                     break;
                 default:

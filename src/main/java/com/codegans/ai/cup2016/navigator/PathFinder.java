@@ -4,6 +4,7 @@ import com.codegans.ai.cup2016.model.Point;
 import model.World;
 
 import java.util.Collection;
+import java.util.function.Consumer;
 
 /**
  * JavaDoc here
@@ -13,4 +14,10 @@ import java.util.Collection;
  */
 public interface PathFinder {
     Collection<Point> traverse(World world, Point start, Point finish, double radius);
+
+    Collection<Point> traverse(World world, Point start, Point finish, double radius, Consumer<Point> logger);
+
+    static AStarPathFinder aStar() {
+        return new AStarPathFinder();
+    }
 }

@@ -2,16 +2,23 @@ package com.codegans.ai.cup2016;
 
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
+import model.Building;
 import model.CircularUnit;
+import model.LivingUnit;
+import model.Minion;
+import model.Tree;
 import model.Wizard;
 import model.World;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
+import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static java.lang.StrictMath.hypot;
-import static java.util.Arrays.stream;
 
 /**
  * JavaDoc here
@@ -30,6 +37,10 @@ public class GameMap {
     private final int width;
     private final int height;
     private final BitSet coverage;
+    private final Collection<Building> buildings = new ArrayList<>();
+    private final Collection<Minion> minions = new ArrayList<>();
+    private final Collection<Wizard> wizards = new ArrayList<>();
+    private final Collection<Tree> trees = new ArrayList<>();
 
     private GameMap(int pixelBlock, int width, int height) {
         this.pixelBlock = pixelBlock;
@@ -78,25 +89,60 @@ public class GameMap {
     }
 
     public boolean available(int x, int y) {
-        return x >= 0 && y >= 0 && x < width && y < height && coverage.get(y * width + x);
+        return x >= 0 && y >= 0 && x < width && y < height && !coverage.get(y * width + x);
+    }
+
+    public boolean available(int x, int y, double radius) {
+        if (!available(x, y)) {
+            return false;
+        }
+
+        int startX = (int) StrictMath.floor(x - radius) / pixelBlock;
+        int startY = (int) StrictMath.floor(y - radius) / pixelBlock;
+        int finishX = (int) StrictMath.ceil(x + radius) / pixelBlock + 1;
+        int finishY = (int) StrictMath.ceil(y + radius) / pixelBlock + 1;
+
+        for (int i = startX; i < finishX; i++) {
+            for (int j = startY; j < finishY; j++) {
+                if (!available(i * pixelBlock, j * pixelBlock) && overlaps(i, j, pixelBlock, x, y, radius)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public CircularUnit find(int x, int y) {
+        Predicate<? super CircularUnit> predicate = e -> overlaps(x, y, 1, e.getX(), e.getY(), e.getRadius());
+
+        Optional<LivingUnit> optional = Stream.concat(Stream.concat(buildings.stream(), minions.stream()), Stream.concat(trees.stream(), wizards.stream())).filter(predicate).findAny();
+
+        return optional.isPresent() ? optional.get() : null;
     }
 
     private GameMap update(World world) {
         coverage.clear();
+        buildings.clear();
+        minions.clear();
+        wizards.clear();
+        trees.clear();
 
-        updateUnits(world.getBuildings(), e -> e.getLife() <= 0);
-        updateUnits(world.getMinions(), e -> e.getLife() <= 0);
-        updateUnits(world.getWizards(), e -> e.getLife() <= 0, Wizard::isMe);
-        updateUnits(world.getTrees(), e -> e.getLife() <= 0);
+        Arrays.stream(world.getBuildings())
+                .filter(e -> e.getLife() > 0)
+                .peek(this::updateUnit).forEach(buildings::add);
+        Arrays.stream(world.getMinions())
+                .filter(e -> e.getLife() > 0)
+                .peek(this::updateUnit).forEach(minions::add);
+        Arrays.stream(world.getWizards())
+                .filter(e -> e.getLife() > 0)
+                .filter(e -> !e.isMe())
+                .peek(this::updateUnit).forEach(wizards::add);
+        Arrays.stream(world.getTrees())
+                .filter(e -> e.getLife() > 0)
+                .peek(this::updateUnit).forEach(trees::add);
 
         return this;
-    }
-
-    @SafeVarargs
-    private final <T extends CircularUnit> void updateUnits(T[] units, Predicate<T>... exclusions) {
-        Predicate<T> predicate = Arrays.stream(exclusions).map(Predicate::negate).reduce(e -> true, Predicate::and);
-
-        stream(units).filter(predicate).forEach(this::updateUnit);
     }
 
     private <T extends CircularUnit> void updateUnit(T unit) {
@@ -109,14 +155,14 @@ public class GameMap {
         int finishX = (int) StrictMath.ceil(x + radius) / pixelBlock + 1;
         int finishY = (int) StrictMath.ceil(y + radius) / pixelBlock + 1;
 
-        LOG.printf("Validating %s: (%f,%f)[%f]", unit, x, y, radius);
+        LOG.printf("Validating %s: (%f,%f)[%f]%n", unit, x, y, radius);
 
         for (int i = startX; i < finishX; i++) {
             for (int j = startY; j < finishY; j++) {
                 if (overlaps(i, j, pixelBlock, x, y, radius)) {
                     coverage.set(j * width + i);
 
-                    LOG.printf("Marked the block: [(%d,%d)->(%d,%d)]", i * pixelBlock, j * pixelBlock, (i + 1) * pixelBlock, (j + 1) * pixelBlock);
+                    LOG.printf("Marked the block: [(%d,%d)->(%d,%d)]%n", i * pixelBlock, j * pixelBlock, (i + 1) * pixelBlock, (j + 1) * pixelBlock);
                 }
             }
         }
