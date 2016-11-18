@@ -16,7 +16,7 @@ public interface Logger {
 
     void printf(String pattern, Object... params);
 
-    void action(Action<?> action);
+    void action(Action action);
 
     void wizard(Wizard car, Navigator navigator);
 

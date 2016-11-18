@@ -57,7 +57,7 @@ public class ConsoleLogger implements Logger {
     }
 
     @Override
-    public void action(Action<?> action) {
+    public void action(Action action) {
         printf("Perform action: %s%n", action);
     }
 

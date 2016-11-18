@@ -1,6 +1,9 @@
 package com.codegans.ai.cup2016;
 
+import com.codegans.ai.cup2016.model.Point;
+import com.codegans.ai.cup2016.navigator.PathFinder;
 import model.Building;
+import model.Faction;
 import model.LivingUnit;
 import model.Minion;
 import model.Tree;
@@ -11,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * JavaDoc here
@@ -29,6 +34,9 @@ public class GameMap {
     private final Collection<Wizard> wizards = new ArrayList<>();
     private final Collection<Minion> minions = new ArrayList<>();
     private final Collection<Building> buildings = new ArrayList<>();
+    private final NavigatorImpl navigator = new NavigatorImpl();
+    private volatile World world;
+    private volatile Wizard self;
     private volatile int version = -1;
 
     private GameMap(int width, int height) {
@@ -118,6 +126,30 @@ public class GameMap {
         return Collections.emptySet();
     }
 
+    public Faction negate(Faction faction) {
+        return faction == Faction.RENEGADES ? Faction.ACADEMY : Faction.RENEGADES;
+    }
+
+    public Stream<Building> buildings() {
+        return buildings.stream();
+    }
+
+    public Stream<Wizard> wizards() {
+        return wizards.stream();
+    }
+
+    public Stream<Minion> minions() {
+        return minions.stream();
+    }
+
+    public boolean availableBetween(Point from, Point to) {
+        return false;
+    }
+
+    public Navigator navigator(Point target) {
+        return navigator.target(target);
+    }
+
     private static Collection<LivingUnit> get(double x, double y, double radius, Collection<? extends LivingUnit> items) {
         Collection<LivingUnit> result = new ArrayList<>();
 
@@ -143,6 +175,7 @@ public class GameMap {
             return this;
         }
 
+        this.world = world;
         version = world.getTickIndex();
 
         trees.clear();
@@ -150,12 +183,50 @@ public class GameMap {
         minions.clear();
         buildings.clear();
 
+        Arrays.stream(world.getWizards()).filter(Wizard::isMe).forEach(e -> self = e);
 
         Arrays.stream(world.getTrees()).filter(e -> e.getLife() > 0).forEach(trees::add);
-        Arrays.stream(world.getWizards()).filter(e -> e.getLife() > 0).filter(e -> !e.isMe()).forEach(wizards::add);
         Arrays.stream(world.getMinions()).filter(e -> e.getLife() > 0).forEach(minions::add);
         Arrays.stream(world.getBuildings()).filter(e -> e.getLife() > 0).forEach(buildings::add);
+        Arrays.stream(world.getWizards()).filter(e -> e.getLife() > 0).filter(e -> !e.isMe()).forEach(wizards::add);
 
         return this;
+    }
+
+    private class NavigatorImpl implements Navigator {
+        private final List<Point> path = new ArrayList<>();
+        private Point target;
+        private int index = 1;
+
+        @Override
+        public Point next() {
+            Point point = path.get(index);
+
+            if (Double.compare(point.x, self.getX()) == 0 && Double.compare(point.y, self.getY()) == 0) {
+                point = path.get(++index);
+            }
+
+            Point me = new Point(self);
+
+            if (!availableBetween(me, point)) {
+                path.clear();
+                path.addAll(PathFinder.aStar().traverse(world, me, target, self.getRadius()));
+                index = 1;
+                point = path.get(index);
+            }
+
+            return point;
+        }
+
+        private NavigatorImpl target(Point target) {
+            if (path.isEmpty() || !path.contains(target)) {
+                path.clear();
+                path.addAll(PathFinder.aStar().traverse(world, new Point(self), target, self.getRadius()));
+            }
+
+            this.target = target;
+
+            return this;
+        }
     }
 }

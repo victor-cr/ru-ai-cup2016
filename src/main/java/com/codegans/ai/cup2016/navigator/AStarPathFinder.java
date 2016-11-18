@@ -21,14 +21,8 @@ import java.util.function.Consumer;
 public class AStarPathFinder implements PathFinder {
     private static final int STEP = 3;
     private static final int PADDING = 5;
-    private static final int TIMEOUT = 300000;
+    private static final int TIMEOUT = 1000;
     private static final Logger LOG = LoggerFactory.getLogger();
-
-    @Override
-    public Collection<Point> traverse(World world, Point start, Point finish, double radius) {
-        return traverse(world, start, finish, radius, e -> {
-        });
-    }
 
     @Override
     public Collection<Point> traverse(World world, Point start, Point finish, double radius, Consumer<Point> logger) {
@@ -111,7 +105,7 @@ public class AStarPathFinder implements PathFinder {
         while (node != null) {
             result.add(new Point(node.x, node.y));
 
-            LOG.printf("Path: [%d,%d]%n", node.x, node.y);
+//            LOG.printf("Path: [%d,%d]%n", node.x, node.y);
 
             node = optimizePath(map, node, radius);
         }

@@ -39,7 +39,7 @@ public class Slf4jLogger implements Logger {
     }
 
     @Override
-    public void action(Action<?> action) {
+    public void action(Action action) {
         printf("Perform action: %s%n", action);
     }
 

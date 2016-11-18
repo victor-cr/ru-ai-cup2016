@@ -13,7 +13,9 @@ import java.util.function.Consumer;
  * @since 16.11.2016 17:30
  */
 public interface PathFinder {
-    Collection<Point> traverse(World world, Point start, Point finish, double radius);
+    default Collection<Point> traverse(World world, Point start, Point finish, double radius) {
+        return traverse(world, start, finish, radius, null);
+    }
 
     Collection<Point> traverse(World world, Point start, Point finish, double radius, Consumer<Point> logger);
 

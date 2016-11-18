@@ -21,7 +21,7 @@ public class NullLogger implements Logger {
     }
 
     @Override
-    public void action(Action<?> action) {
+    public void action(Action action) {
     }
 
     @Override

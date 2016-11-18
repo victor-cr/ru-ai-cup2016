@@ -1,13 +1,12 @@
 package com.codegans.ai.cup2016.decision;
 
-import com.codegans.ai.cup2016.Navigator;
 import com.codegans.ai.cup2016.action.Action;
+import com.codegans.ai.cup2016.action.MoveAction;
+import com.codegans.ai.cup2016.model.Point;
 import model.Game;
 import model.Move;
 import model.Wizard;
 import model.World;
-
-import java.util.Collection;
 
 /**
  * JavaDoc here
@@ -17,7 +16,7 @@ import java.util.Collection;
  */
 public class MoveDecision implements Decision {
     @Override
-    public Collection<Action<?>> decide(Wizard self, World world, Game game, Move move, Navigator navigator) {
-        return null;
+    public Action decide(Wizard self, World world, Game game, Move move) {
+        return new MoveAction(MEDIUM, new Point(2000, 2000));
     }
 }
