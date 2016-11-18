@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.PriorityQueue;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 /**
  * JavaDoc here
@@ -36,6 +35,7 @@ public class AStarPathFinder implements PathFinder {
         PriorityQueue<AStarNode> opened = new PriorityQueue<>();
         AStarNode[] closed = new AStarNode[width * height];
         GameMap map = GameMap.get(world);
+        Direction[] directions = Direction.values();
 
         AStarNode starNode = new AStarNode(start, finish, STEP);
 
@@ -45,54 +45,63 @@ public class AStarPathFinder implements PathFinder {
         long startTime = System.currentTimeMillis();
 
         while (!opened.isEmpty()) {
-            if (i++ > 10000) {
-                i = 0;
-
-                if (System.currentTimeMillis() > startTime + TIMEOUT) {
-                    LOG.printf("Terminated by timeout%n");
-                    break;
-                }
+            if ((i++ % 10000) == 0 && System.currentTimeMillis() > startTime + TIMEOUT) {
+                LOG.printf("Terminated by timeout%n");
+                break;
             }
 
             AStarNode node = opened.poll();
 
             if (node.isTarget()) {
-                return constructPath(node);
+                LOG.printf("Number of iterations: %d%n", i);
+                return constructPath(map, node, radius);
             }
 
-            AStarNode current = closed[node.x / STEP + width * node.y / STEP];
+            for (Direction direction : directions) {
+                int x = node.x + direction.dx;
+                int y = node.y + direction.dy;
 
-            if (current == null || Double.compare(current.cost(), node.cost()) > 0) {
-                closed[node.x / STEP + width * node.y / STEP] = node;
+                if (x >= 0 && y >= 0 && x < width && y < height) {
+                    int index = index(x, y, width);
 
-                Stream.<AStarNode>builder()
-                        .add(new AStarNode(node.x - STEP, node.y - STEP, node))
-                        .add(new AStarNode(node.x - STEP, node.y, node))
-                        .add(new AStarNode(node.x - STEP, node.y + STEP, node))
-                        .add(new AStarNode(node.x, node.y - STEP, node))
-                        .add(new AStarNode(node.x, node.y + STEP, node))
-                        .add(new AStarNode(node.x + STEP, node.y - STEP, node))
-                        .add(new AStarNode(node.x + STEP, node.y, node))
-                        .add(new AStarNode(node.x + STEP, node.y + STEP, node))
-                        .build()
-                        .filter(e -> map.available(e.x, e.y, radius))
-                        .peek(e -> logger.accept(e.toPoint()))
-                        .forEach(opened::offer);
+                    AStarNode child = new AStarNode(x, y, node);
+                    AStarNode prev = closed[index];
+
+                    if (prev == null || Double.compare(prev.cost(), child.cost()) > 0) {
+                        closed[index] = child;
+
+                        if (map.available(x, y, radius)) {
+                            if (logger != null) {
+                                logger.accept(child.toPoint());
+                            }
+
+                            opened.add(child);
+                        }
+                    }
+                }
             }
         }
 
         AStarNode best = starNode;
 
         for (AStarNode node : closed) {
-            if (node != null && Double.compare(best.estimatedCost(), node.estimatedCost()) > 0) {
-                best = node;
+            if (node != null && Double.compare(best.estimatedCost(), node.estimatedCost()) >= 0) {
+                if (Double.compare(best.estimatedCost(), node.estimatedCost()) > 0 || Double.compare(best.traversedCost(), node.traversedCost()) > 0) {
+                    best = node;
+                }
             }
         }
 
-        return constructPath(best);
+        LOG.printf("Number of iterations: %d%n", i);
+
+        return constructPath(map, best, radius);
     }
 
-    private Collection<Point> constructPath(AStarNode node) {
+    private static int index(int x, int y, int width) {
+        return (x + y * width) / STEP;
+    }
+
+    private Collection<Point> constructPath(GameMap map, AStarNode node, double radius) {
         Collection<Point> result = new ArrayList<>();
 
         while (node != null) {
@@ -100,9 +109,62 @@ public class AStarPathFinder implements PathFinder {
 
             LOG.printf("Path: [%d,%d]%n", node.x, node.y);
 
-            node = node.previous();
+            node = optimizePath(map, node, radius);
         }
 
         return result;
+    }
+
+    private AStarNode optimizePath(GameMap map, AStarNode node, double radius) {
+        AStarNode previous = node.previous();
+
+        for (AStarNode temp = previous; temp != null && !intersect(map, node, previous, radius); temp = previous.previous()) {
+            previous = temp;
+        }
+
+        return previous;
+    }
+
+    private boolean intersect(GameMap map, AStarNode start, AStarNode stop, double radius) {
+        int x = start.x;
+        int y = start.y;
+        int deltaX = start.x - stop.x;
+        int deltaY = start.y - stop.y;
+
+        int base = StrictMath.max(StrictMath.abs(deltaX), StrictMath.abs(deltaY));
+
+        double dx = deltaX;
+        double dy = deltaY;
+        int i = 1;
+
+        while (i < base - 1) {
+            if (!map.available(x - dx * i / base, y - dy * i / base, radius)) {
+                LOG.printf("Found intersection at: (%f,%f)[%f]%n", x - dx * i, y - dy * i, radius);
+                return true;
+            }
+
+            i++;
+        }
+
+        return false;
+    }
+
+    private enum Direction {
+        NORTH(0, -1),
+        SOUTH(0, 1),
+        WEST(-1, 0),
+        EAST(1, 0),
+        NORTH_WEST(-1, -1),
+        SOUTH_WEST(-1, 1),
+        NORTH_EAST(1, -1),
+        SOUTH_EAST(1, 1),;
+
+        private final int dx;
+        private final int dy;
+
+        Direction(int dx, int dy) {
+            this.dx = dx * STEP;
+            this.dy = dy * STEP;
+        }
     }
 }

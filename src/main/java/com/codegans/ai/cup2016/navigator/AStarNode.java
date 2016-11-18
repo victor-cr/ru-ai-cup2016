@@ -11,6 +11,7 @@ import static java.lang.StrictMath.hypot;
  * @since 17.11.2016 8:30
  */
 public class AStarNode implements Comparable<AStarNode> {
+    private static final int SHIFT = 256;
     protected final int x;
     protected final int y;
     private final int targetX;
@@ -39,8 +40,8 @@ public class AStarNode implements Comparable<AStarNode> {
         this.targetX = targetX;
         this.targetY = targetY;
         this.previous = previous;
-        this.hCost = hypot(x - targetX, y - targetY);
-        this.gCost = previous == null ? 0 : previous.traversedCost() + previous.distance(this);
+        this.hCost = StrictMath.floor(SHIFT * hypot(x - targetX, y - targetY)) / SHIFT;
+        this.gCost = previous == null ? 0 : StrictMath.floor(SHIFT * previous.traversedCost()) / SHIFT + previous.distance(this);
     }
 
     public double cost() {
@@ -68,7 +69,7 @@ public class AStarNode implements Comparable<AStarNode> {
     }
 
     private double distance(AStarNode target) {
-        return target == null ? 0 : hypot(x - target.x, y - target.y);
+        return StrictMath.floor(SHIFT * hypot(x - target.x, y - target.y)) / SHIFT;
     }
 
     public Point toPoint() {
@@ -100,11 +101,11 @@ public class AStarNode implements Comparable<AStarNode> {
     }
 
     private String toInternalString() {
-        if (previous == null) {
-            return "[" + x + ":" + y + "]";
-        }
+//        if (previous == null) {
+            return "[" + x + ":" + y + "] (" + hCost + ":" + gCost + ")";
+//        }
 
-        return previous.toInternalString() + " -> [" + x + ":" + y + "]";
+//        return "[" + x + ":" + y + "] (" + hCost + ":" + gCost + ") <- " + previous.toInternalString();
     }
 
 }

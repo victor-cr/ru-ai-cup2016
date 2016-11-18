@@ -10,6 +10,17 @@ public final class MyStrategy implements Strategy {
 
     @Override
     public void move(Wizard self, World world, Game game, Move move) {
+//        File file = new File(System.getProperty("user.home"), "test.ai-cup-2016");
+//
+//        try (PrintWriter out = new PrintWriter(new FileWriter(file, false))) {
+//            Arrays.stream(world.getBuildings()).map(e -> "0x808080ff" + ';' + e.getRadius() + ';' + e.getX() + ';' + e.getY() + '\n').forEach(out::write);
+//            Arrays.stream(world.getTrees()).map(e -> "0x008000ff" + ';' + e.getRadius() + ';' + e.getX() + ';' + e.getY() + '\n').forEach(out::write);
+//            out.write("0xff0000ff;" + self.getRadius() + ';' + self.getX() + ';' + self.getY() + '\n');
+//        } catch (IOException e) {
+//            throw new IllegalStateException(e);
+//        }
+//
+//
         StrategyDelegate local = delegate;
 
         if (local == null) {
