@@ -4,6 +4,7 @@ import com.codegans.ai.cup2016.GameMap;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
+import model.LivingUnit;
 import model.World;
 
 import java.util.ArrayList;
@@ -18,8 +19,9 @@ import java.util.function.Consumer;
  * @since 16.11.2016 17:30
  */
 public class AStarPathFinder implements PathFinder {
-    private static final int STEP = 2;
-    private static final int TIMEOUT = 3000;
+    private static final int STEP = 3;
+    private static final int PADDING = 5;
+    private static final int TIMEOUT = 300000;
     private static final Logger LOG = LoggerFactory.getLogger();
 
     @Override
@@ -39,6 +41,8 @@ public class AStarPathFinder implements PathFinder {
 
         AStarNode starNode = new AStarNode(start, finish, STEP);
 
+        LivingUnit unit = map.findAt(finish.x, finish.y);
+
         opened.offer(starNode);
 
         int i = 0;
@@ -52,7 +56,7 @@ public class AStarPathFinder implements PathFinder {
 
             AStarNode node = opened.poll();
 
-            if (node.isTarget()) {
+            if (node.isTarget() || unit != null && map.isNear(node.x, node.y, radius + PADDING, unit)) {
                 LOG.printf("Number of iterations: %d%n", i);
                 return constructPath(map, node, radius);
             }
@@ -71,7 +75,7 @@ public class AStarPathFinder implements PathFinder {
                         closed[index] = child;
 
                         if (map.available(x, y, radius)) {
-                            if (logger != null) {
+                            if (logger != null && prev == null) {
                                 logger.accept(child.toPoint());
                             }
 
@@ -139,7 +143,6 @@ public class AStarPathFinder implements PathFinder {
 
         while (i < base - 1) {
             if (!map.available(x - dx * i / base, y - dy * i / base, radius)) {
-                LOG.printf("Found intersection at: (%f,%f)[%f]%n", x - dx * i, y - dy * i, radius);
                 return true;
             }
 

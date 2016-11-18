@@ -87,8 +87,8 @@ public class Window extends Application {
             root.setTranslateY(0 - canvas.getHeight() * (1 - root.getScaleY()) / 2);
         });
         root.setOnMouseClicked(event -> {
-            double mouseX = event.getSceneX();
-            double mouseY = event.getSceneY();
+            double mouseX = event.getSceneX() / root.getScaleX();
+            double mouseY = event.getSceneY() / root.getScaleY();
 
             switch (event.getButton()) {
                 case PRIMARY:
@@ -231,6 +231,10 @@ public class Window extends Application {
                 Circle circle = new Circle(Double.parseDouble(e[2]), Double.parseDouble(e[3]), Double.parseDouble(e[1]));
 
                 circle.setFill(Color.valueOf(e[0]));
+                circle.setOnMouseClicked(event -> {
+                    root.getChildren().remove(circle);
+                    event.consume();
+                });
 
                 root.getChildren().add(circle);
             });

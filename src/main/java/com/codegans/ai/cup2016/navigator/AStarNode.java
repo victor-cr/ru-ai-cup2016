@@ -2,7 +2,7 @@ package com.codegans.ai.cup2016.navigator;
 
 import com.codegans.ai.cup2016.model.Point;
 
-import static java.lang.StrictMath.hypot;
+import static java.lang.StrictMath.*;
 
 /**
  * JavaDoc here
@@ -12,6 +12,9 @@ import static java.lang.StrictMath.hypot;
  */
 public class AStarNode implements Comparable<AStarNode> {
     private static final int SHIFT = 256;
+    private static final double G_WEIGHT = 1;
+    private static final double H_WEIGHT = sqrt(2);
+
     protected final int x;
     protected final int y;
     private final int targetX;
@@ -40,7 +43,7 @@ public class AStarNode implements Comparable<AStarNode> {
         this.targetX = targetX;
         this.targetY = targetY;
         this.previous = previous;
-        this.hCost = StrictMath.floor(SHIFT * hypot(x - targetX, y - targetY)) / SHIFT;
+        this.hCost = heuristic();
         this.gCost = previous == null ? 0 : StrictMath.floor(SHIFT * previous.traversedCost()) / SHIFT + previous.distance(this);
     }
 
@@ -60,16 +63,18 @@ public class AStarNode implements Comparable<AStarNode> {
         return previous;
     }
 
-    public void previous(AStarNode previous) {
-        this.previous = previous;
-    }
-
     public boolean isTarget() {
         return x == targetX && y == targetY;
     }
 
     private double distance(AStarNode target) {
-        return StrictMath.floor(SHIFT * hypot(x - target.x, y - target.y)) / SHIFT;
+        return StrictMath.floor(SHIFT * hypot(x - target.x, y - target.y) * G_WEIGHT) / SHIFT;
+    }
+
+    private double heuristic() {
+        double dx = abs(x - targetX);
+        double dy = abs(y - targetY);
+        return G_WEIGHT * (dx + dy) + (H_WEIGHT - 2 * G_WEIGHT) * min(dx, dy);
     }
 
     public Point toPoint() {
@@ -102,7 +107,7 @@ public class AStarNode implements Comparable<AStarNode> {
 
     private String toInternalString() {
 //        if (previous == null) {
-            return "[" + x + ":" + y + "] (" + hCost + ":" + gCost + ")";
+        return "[" + x + ":" + y + "] (" + hCost + ":" + gCost + ")";
 //        }
 
 //        return "[" + x + ":" + y + "] (" + hCost + ":" + gCost + ") <- " + previous.toInternalString();

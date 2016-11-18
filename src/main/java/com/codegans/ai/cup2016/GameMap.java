@@ -1,7 +1,6 @@
 package com.codegans.ai.cup2016;
 
 import model.Building;
-import model.CircularUnit;
 import model.LivingUnit;
 import model.Minion;
 import model.Tree;
@@ -11,9 +10,7 @@ import model.World;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.stream.Stream;
-
-import static java.lang.StrictMath.hypot;
+import java.util.Collections;
 
 /**
  * JavaDoc here
@@ -63,22 +60,74 @@ public class GameMap {
         return height;
     }
 
-    public boolean available(int x, int y) {
+    public boolean isNear(double x, double y, double proximity, LivingUnit unit) {
+        return intersect(x, y, proximity, unit.getX(), unit.getY(), unit.getRadius());
+    }
+
+    public boolean available(double x, double y) {
         return available(x, y, 0);
     }
 
     public boolean available(double x, double y, double radius) {
-        return x >= 0 && y >= 0 && x < width && y < height && check(x, y, radius, buildings) && check(x, y, radius, minions) && check(x, y, radius, wizards) && check(x, y, radius, trees);
+        return x >= 0 && y >= 0 && x < width && y < height
+                && get(x, y, radius, buildings).isEmpty()
+                && get(x, y, radius, minions).isEmpty()
+                && get(x, y, radius, wizards).isEmpty()
+                && get(x, y, radius, trees).isEmpty();
     }
 
-    private static boolean check(double x, double y, double radius, Collection<? extends LivingUnit> items) {
-        for (LivingUnit item : items) {
-            if (intersect(x, y, radius, item.getX(), item.getY(), item.getRadius())) {
-                return false;
+    public LivingUnit findAt(double x, double y) {
+        if (x >= 0 && y >= 0 && x < width && y < height) {
+            for (LivingUnit item : buildings) {
+                if (intersect(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
+                    return item;
+                }
+            }
+            for (LivingUnit item : minions) {
+                if (intersect(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
+                    return item;
+                }
+            }
+            for (LivingUnit item : wizards) {
+                if (intersect(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
+                    return item;
+                }
+            }
+            for (LivingUnit item : trees) {
+                if (intersect(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
+                    return item;
+                }
             }
         }
 
-        return true;
+        return null;
+    }
+
+    public Collection<LivingUnit> findAll(double x, double y, double radius) {
+        if (x >= 0 && y >= 0 && x < width && y < height) {
+            Collection<LivingUnit> result = new ArrayList<>();
+
+            result.addAll(get(x, y, radius, buildings));
+            result.addAll(get(x, y, radius, minions));
+            result.addAll(get(x, y, radius, wizards));
+            result.addAll(get(x, y, radius, trees));
+
+            return result;
+        }
+
+        return Collections.emptySet();
+    }
+
+    private static Collection<LivingUnit> get(double x, double y, double radius, Collection<? extends LivingUnit> items) {
+        Collection<LivingUnit> result = new ArrayList<>();
+
+        for (LivingUnit item : items) {
+            if (intersect(x, y, radius, item.getX(), item.getY(), item.getRadius())) {
+                result.add(item);
+            }
+        }
+
+        return result;
     }
 
     private static boolean intersect(double x1, double y1, double r1, double x2, double y2, double r2) {
@@ -87,22 +136,6 @@ public class GameMap {
 
     private static double pow2(double a) {
         return a * a;
-    }
-
-//    public boolean available(double x, double y, double radius) {
-//        return x < 775 - 50 - radius || x > 775 + 50 + radius || y < 148 - 50 - radius || y > 148 + 50 + radius;
-//    }
-
-    public CircularUnit find(double x, double y) {
-        if (x >= 0 && y >= 0 && x < width && y < height) {
-            return streamAll().filter(e -> hypot(e.getX() - x, e.getY() - y) < e.getRadius()).findAny().orElse(null);
-        }
-
-        return null;
-    }
-
-    private Stream<LivingUnit> streamAll() {
-        return Stream.concat(Stream.concat(buildings.stream(), minions.stream()), Stream.concat(trees.stream(), wizards.stream()));
     }
 
     private GameMap update(World world) {
