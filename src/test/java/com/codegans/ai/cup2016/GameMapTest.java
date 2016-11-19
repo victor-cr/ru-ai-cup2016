@@ -1,8 +1,12 @@
 package com.codegans.ai.cup2016;
 
+import com.codegans.ai.cup2016.model.MockTree;
+import com.codegans.ai.cup2016.model.MockWorld;
+import com.codegans.ai.cup2016.model.Point;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * JavaDoc here
@@ -12,7 +16,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class GameMapTest {
     @Test
-    void testEmptyMap() {
-        assertEquals(true, true);
+    void testCanPass_Empty() {
+        MockWorld world = new MockWorld(4000, 4000);
+
+        assertTrue(GameMap.get(world).canPass(new Point(50, 50), new Point(2000, 2000), 35));
+    }
+
+    @Test
+    void testCanPass_BlockingTree() {
+        MockWorld world = new MockWorld(4000, 4000).add(new MockTree(1000, 1000, 100));
+
+        assertFalse(GameMap.get(world).canPass(new Point(50, 50), new Point(2000, 2000), 35));
+    }
+
+    @Test
+    void testCanPass_AdjacentTree() {
+        MockWorld world = new MockWorld(4000, 4000).add(new MockTree(2020, 2020, 19));
+
+        assertFalse(GameMap.get(world).canPass(new Point(50, 50), new Point(2000, 2000), 35));
     }
 }

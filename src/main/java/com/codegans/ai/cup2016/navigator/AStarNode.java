@@ -2,7 +2,10 @@ package com.codegans.ai.cup2016.navigator;
 
 import com.codegans.ai.cup2016.model.Point;
 
-import static java.lang.StrictMath.*;
+import static java.lang.StrictMath.abs;
+import static java.lang.StrictMath.hypot;
+import static java.lang.StrictMath.min;
+import static java.lang.StrictMath.sqrt;
 
 /**
  * JavaDoc here
@@ -102,15 +105,6 @@ public class AStarNode implements Comparable<AStarNode> {
 
     @Override
     public String toString() {
-        return "AStarNode: " + toInternalString();
+        return "A* node[" + x + ":" + y + "] (" + hCost + ":" + gCost + ")";
     }
-
-    private String toInternalString() {
-//        if (previous == null) {
-        return "[" + x + ":" + y + "] (" + hCost + ":" + gCost + ")";
-//        }
-
-//        return "[" + x + ":" + y + "] (" + hCost + ":" + gCost + ") <- " + previous.toInternalString();
-    }
-
 }

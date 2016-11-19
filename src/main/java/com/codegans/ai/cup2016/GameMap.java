@@ -68,8 +68,45 @@ public class GameMap {
         return height;
     }
 
-    public boolean isNear(double x, double y, double proximity, LivingUnit unit) {
-        return intersect(x, y, proximity, unit.getX(), unit.getY(), unit.getRadius());
+    public boolean isNear(double x, double y, double radius, LivingUnit unit) {
+        return intersects(x, y, radius, unit.getX(), unit.getY(), unit.getRadius());
+    }
+
+    public boolean canPass(Point from, Point to, double radius) {
+        double x = from.x;
+        double y = from.y;
+        double targetX = to.x;
+        double targetY = to.y;
+
+        double dx = targetX - x;
+        double dy = targetY - y;
+
+        double a = dy / dx;
+        double b = y - a * x;
+        double c = -dx / dy;
+
+        for (LivingUnit item : buildings) {
+            if (intersects(a, b, c, radius, x, y, targetX, targetY, item.getX(), item.getY(), item.getRadius())) {
+                return false;
+            }
+        }
+        for (LivingUnit item : minions) {
+            if (intersects(a, b, c, radius, x, y, targetX, targetY, item.getX(), item.getY(), item.getRadius())) {
+                return false;
+            }
+        }
+        for (LivingUnit item : wizards) {
+            if (intersects(a, b, c, radius, x, y, targetX, targetY, item.getX(), item.getY(), item.getRadius())) {
+                return false;
+            }
+        }
+        for (LivingUnit item : trees) {
+            if (intersects(a, b, c, radius, x, y, targetX, targetY, item.getX(), item.getY(), item.getRadius())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public boolean available(double x, double y) {
@@ -87,22 +124,22 @@ public class GameMap {
     public LivingUnit findAt(double x, double y) {
         if (x >= 0 && y >= 0 && x < width && y < height) {
             for (LivingUnit item : buildings) {
-                if (intersect(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
+                if (intersects(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
                     return item;
                 }
             }
             for (LivingUnit item : minions) {
-                if (intersect(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
+                if (intersects(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
                     return item;
                 }
             }
             for (LivingUnit item : wizards) {
-                if (intersect(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
+                if (intersects(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
                     return item;
                 }
             }
             for (LivingUnit item : trees) {
-                if (intersect(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
+                if (intersects(x, y, 0, item.getX(), item.getY(), item.getRadius())) {
                     return item;
                 }
             }
@@ -142,10 +179,6 @@ public class GameMap {
         return minions.stream();
     }
 
-    public boolean availableBetween(Point from, Point to) {
-        return false;
-    }
-
     public Navigator navigator(Point target) {
         return navigator.target(target);
     }
@@ -154,7 +187,7 @@ public class GameMap {
         Collection<LivingUnit> result = new ArrayList<>();
 
         for (LivingUnit item : items) {
-            if (intersect(x, y, radius, item.getX(), item.getY(), item.getRadius())) {
+            if (intersects(x, y, radius, item.getX(), item.getY(), item.getRadius())) {
                 result.add(item);
             }
         }
@@ -162,8 +195,21 @@ public class GameMap {
         return result;
     }
 
-    private static boolean intersect(double x1, double y1, double r1, double x2, double y2, double r2) {
-        return pow2(x1 - x2) + pow2(y1 - y2) < pow2(r1 + r2);
+    private static boolean intersects(double a, double b, double c, double radius, double x1, double y1, double x2, double y2, double x3, double y3, double r3) {
+        double d = y3 - c * x3;
+        double x = (d - b) / (a - c); // a * x + b = c * x + d
+
+        if (Double.compare(x, Double.min(x1, x2) - radius) < 0 || Double.compare(x, Double.max(x1, x2) + radius) > 0) {
+            return false;
+        }
+
+        double y = a * x + b;
+
+        return Double.compare(pow2(x - x3) + pow2(y - y3), pow2(radius + r3)) < 0;
+    }
+
+    private static boolean intersects(double x1, double y1, double r1, double x2, double y2, double r2) {
+        return Double.compare(pow2(x1 - x2) + pow2(y1 - y2), pow2(r1 + r2)) < 0;
     }
 
     private static double pow2(double a) {
@@ -208,7 +254,7 @@ public class GameMap {
 
             Point me = new Point(self);
 
-            if (!availableBetween(me, point)) {
+            if (!canPass(me, point, self.getRadius())) {
                 path.clear();
                 path.addAll(PathFinder.aStar().traverse(world, me, target, self.getRadius()));
                 index = 1;

@@ -117,6 +117,10 @@ public class Window extends Application {
                     Circle me = new Circle(mouseX, mouseY, 35);
 
                     me.setFill(RED);
+                    me.setOnMouseClicked(e -> {
+                        root.getChildren().remove(me);
+                        e.consume();
+                    });
 
                     root.getChildren().add(me);
 

@@ -20,7 +20,7 @@ import java.util.stream.Stream;
  */
 public class MockWorld extends World {
     public MockWorld(double width, double height) {
-        this(0, 0, width, height, new Player[0], new Wizard[0], new Minion[0], new Projectile[0], new Bonus[0], new Building[0], new Tree[0]);
+        this(Sequence.next(), 0, width, height, new Player[0], new Wizard[0], new Minion[0], new Projectile[0], new Bonus[0], new Building[0], new Tree[0]);
     }
 
     private MockWorld(int tickIndex, int tickCount, double width, double height, Player[] players, Wizard[] wizards, Minion[] minions, Projectile[] projectiles, Bonus[] bonuses, Building[] buildings, Tree[] trees) {

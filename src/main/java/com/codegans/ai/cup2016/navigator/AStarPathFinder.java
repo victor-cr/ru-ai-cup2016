@@ -9,8 +9,10 @@ import model.World;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
 /**
  * JavaDoc here
@@ -100,14 +102,22 @@ public class AStarPathFinder implements PathFinder {
     }
 
     private Collection<Point> constructPath(GameMap map, AStarNode node, double radius) {
-        Collection<Point> result = new ArrayList<>();
+        List<Point> result = new ArrayList<>();
 
         while (node != null) {
             result.add(new Point(node.x, node.y));
 
-//            LOG.printf("Path: [%d,%d]%n", node.x, node.y);
-
             node = optimizePath(map, node, radius);
+        }
+
+        for (int i = 0; i < result.size(); i++) {
+            for (int j = result.size() - 1; j > i + 1; j--) {
+                if (map.canPass(result.get(i), result.get(j), radius)) {
+                    int from = i + 1;
+                    IntStream.range(from, j - 1).forEach(e -> result.remove(from));
+                    break;
+                }
+            }
         }
 
         return result;
@@ -116,34 +126,11 @@ public class AStarPathFinder implements PathFinder {
     private AStarNode optimizePath(GameMap map, AStarNode node, double radius) {
         AStarNode previous = node.previous();
 
-        for (AStarNode temp = previous; temp != null && !intersect(map, node, previous, radius); temp = previous.previous()) {
+        for (AStarNode temp = previous; temp != null && map.canPass(node.toPoint(), previous.toPoint(), radius); temp = previous.previous()) {
             previous = temp;
         }
 
         return previous;
-    }
-
-    private boolean intersect(GameMap map, AStarNode start, AStarNode stop, double radius) {
-        int x = start.x;
-        int y = start.y;
-        int deltaX = start.x - stop.x;
-        int deltaY = start.y - stop.y;
-
-        int base = StrictMath.max(StrictMath.abs(deltaX), StrictMath.abs(deltaY));
-
-        double dx = deltaX;
-        double dy = deltaY;
-        int i = 1;
-
-        while (i < base - 1) {
-            if (!map.available(x - dx * i / base, y - dy * i / base, radius)) {
-                return true;
-            }
-
-            i++;
-        }
-
-        return false;
     }
 
     private enum Direction {
