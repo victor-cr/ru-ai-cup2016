@@ -13,11 +13,11 @@ import model.World;
  * @since 14.11.2016 20:27
  */
 public interface Decision {
-    int MINOR = 1;
-    int LOW = MINOR * 10;
-    int MEDIUM = LOW * 10;
-    int HIGH = MEDIUM * 10;
-    int ASAP = HIGH * 10;
+    int ASAP = 1;
+    int HIGH = ASAP * 10;
+    int MEDIUM = HIGH * 10;
+    int LOW = MEDIUM * 10;
+    int MINOR = 10 * LOW;
 
     Action decide(Wizard self, World world, Game game, Move move);
 }

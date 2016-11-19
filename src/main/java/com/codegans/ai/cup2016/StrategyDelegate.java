@@ -6,6 +6,7 @@ import com.codegans.ai.cup2016.decision.MoveCommandDecision;
 import com.codegans.ai.cup2016.decision.MoveDecision;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
+import model.ActionType;
 import model.Game;
 import model.Move;
 import model.Wizard;
@@ -31,12 +32,19 @@ public class StrategyDelegate {
     );
 
     public void move(Wizard self, World world, Game game, Move move) {
+        if (self.getLife() <= 0) {
+            log.printf("Still dead: %d%n", self.getRemainingActionCooldownTicks());
+            move.setAction(ActionType.NONE);
+            return;
+        }
+
         decisions.stream()
                 .map(e -> e.decide(self, world, game, move))
                 .sorted()
                 .collect(Collectors.toMap(Action::getClass, e -> e, (l, r) -> l, HashMap::new))
                 .values().stream()
                 .sorted()
+                .peek(e -> log.printf("<%d>-------%n", world.getTickIndex()))
                 .peek(log::action)
                 .forEach(e -> e.apply(self, world, game, move));
     }

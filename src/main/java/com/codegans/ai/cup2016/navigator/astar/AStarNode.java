@@ -1,4 +1,4 @@
-package com.codegans.ai.cup2016.navigator;
+package com.codegans.ai.cup2016.navigator.astar;
 
 import com.codegans.ai.cup2016.model.Point;
 
@@ -13,52 +13,41 @@ import static java.lang.StrictMath.sqrt;
  * @author Victor Polischuk
  * @since 17.11.2016 8:30
  */
-public class AStarNode implements Comparable<AStarNode> {
+public abstract class AStarNode implements Comparable<AStarNode> {
+    protected static final double G_WEIGHT = 1;
+    protected static final double H_WEIGHT = sqrt(2);
     private static final int SHIFT = 256;
-    private static final double G_WEIGHT = 1;
-    private static final double H_WEIGHT = sqrt(2);
 
     protected final int x;
     protected final int y;
-    private final int targetX;
-    private final int targetY;
+    protected final int targetX;
+    protected final int targetY;
     private final double hCost;
-    private final double gCost;
+    private double gCost = -1;
     private AStarNode previous;
 
-    public AStarNode(Point start, Point target, int step) {
-        this(
-                StrictMath.floorDiv((int) start.x, step) * step,
-                StrictMath.floorDiv((int) start.y, step) * step,
-                StrictMath.floorDiv((int) target.x, step) * step,
-                StrictMath.floorDiv((int) target.y, step) * step,
-                null
-        );
-    }
-
-    public AStarNode(int x, int y, AStarNode previous) {
-        this(x, y, previous.targetX, previous.targetY, previous);
-    }
-
-    private AStarNode(int x, int y, int targetX, int targetY, AStarNode previous) {
+    protected AStarNode(int x, int y, int targetX, int targetY, AStarNode previous) {
         this.x = x;
         this.y = y;
         this.targetX = targetX;
         this.targetY = targetY;
         this.previous = previous;
-        this.hCost = heuristic();
-        this.gCost = previous == null ? 0 : StrictMath.floor(SHIFT * previous.traversedCost()) / SHIFT + previous.distance(this);
+        this.hCost = heuristic(targetX, targetY);
     }
 
     public double cost() {
-        return hCost + gCost;
+        return estimatedCost() + traversedCost();
     }
 
     public double estimatedCost() {
-        return hCost;
+        return round(hCost);
     }
 
     public double traversedCost() {
+        if (gCost < 0) {
+            gCost = previous.traversedCost() + distanceFrom(previous);
+        }
+
         return gCost;
     }
 
@@ -66,22 +55,32 @@ public class AStarNode implements Comparable<AStarNode> {
         return previous;
     }
 
+    public void previous(AStarNode previous) {
+        this.previous = previous;
+        this.gCost = -1;
+        traversedCost();
+    }
+
     public boolean isTarget() {
         return x == targetX && y == targetY;
     }
 
-    private double distance(AStarNode target) {
-        return StrictMath.floor(SHIFT * hypot(x - target.x, y - target.y) * G_WEIGHT) / SHIFT;
+    public Point toPoint() {
+        return new Point(x, y);
     }
 
-    private double heuristic() {
-        double dx = abs(x - targetX);
-        double dy = abs(y - targetY);
+    protected double distanceFrom(AStarNode target) {
+        return round(hypot(x - target.x, y - target.y) * G_WEIGHT);
+    }
+
+    private double heuristic(double x, double y) {
+        double dx = abs(this.x - x);
+        double dy = abs(this.y - y);
         return G_WEIGHT * (dx + dy) + (H_WEIGHT - 2 * G_WEIGHT) * min(dx, dy);
     }
 
-    public Point toPoint() {
-        return new Point(x, y);
+    private static double round(double value) {
+        return StrictMath.floor(SHIFT * value) / SHIFT;
     }
 
     @Override
@@ -105,6 +104,6 @@ public class AStarNode implements Comparable<AStarNode> {
 
     @Override
     public String toString() {
-        return "A* node[" + x + ":" + y + "] (" + hCost + ":" + gCost + ")";
+        return getClass().getSimpleName() + "[" + x + ":" + y + "] (" + hCost + ":" + traversedCost() + ")";
     }
 }

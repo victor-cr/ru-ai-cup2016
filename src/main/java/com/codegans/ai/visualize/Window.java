@@ -55,23 +55,36 @@ public class Window extends Application {
     private static final Logger LOG = LoggerFactory.getLogger();
     private static final File CANVAS_FILE = new File(System.getProperty("user.home"), "field.ai-cup-2016");
 
+    private boolean dragging;
+    private double shiftX;
+    private double shiftY;
+    private double x;
+    private double y;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
         Group root = new Group();
         Canvas canvas = new Canvas(4000, 4000);
 
-        root.setCursor(Cursor.CROSSHAIR);
+        root.setCursor(Cursor.HAND);
         root.getChildren().add(canvas);
         root.setScaleX(0.25);
         root.setScaleY(0.25);
-        root.setTranslateX(0 - canvas.getWidth() * (1 - 0.25) / 2);
-        root.setTranslateY(0 - canvas.getHeight() * (1 - 0.25) / 2);
+        root.setTranslateX(shiftX - canvas.getWidth() * (1 - 0.25) / 2);
+        root.setTranslateY(shiftY - canvas.getHeight() * (1 - 0.25) / 2);
 
         canvas.getGraphicsContext2D().setStroke(ROSYBROWN);
         canvas.getGraphicsContext2D().setLineWidth(10);
         canvas.getGraphicsContext2D().strokeRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
+        root.setOnKeyPressed(event -> {
+            if (event.isShiftDown() || event.isControlDown()) {
+                root.setCursor(Cursor.CROSSHAIR);
+            }
+        });
+        root.setOnKeyReleased(event -> {
+            root.setCursor(Cursor.HAND);
+        });
         root.setOnScroll(event -> {
             event.consume();
 
@@ -83,40 +96,63 @@ public class Window extends Application {
 
             root.setScaleX(root.getScaleX() * scaleFactor);
             root.setScaleY(root.getScaleY() * scaleFactor);
-            root.setTranslateX(0 - canvas.getWidth() * (1 - root.getScaleX()) / 2);
-            root.setTranslateY(0 - canvas.getHeight() * (1 - root.getScaleY()) / 2);
+            root.setTranslateX(shiftX - canvas.getWidth() * (1 - root.getScaleX()) / 2);
+            root.setTranslateY(shiftY - canvas.getHeight() * (1 - root.getScaleY()) / 2);
+        });
+
+        root.setOnDragDetected(event -> {
+            if (!event.isShiftDown() && !event.isControlDown()) {
+                x = event.getScreenX();
+                y = event.getScreenY();
+                shiftX = root.getTranslateX() + canvas.getWidth() * (1 - root.getScaleX()) / 2;
+                shiftY = root.getTranslateY() + canvas.getHeight() * (1 - root.getScaleY()) / 2;
+                root.startFullDrag();
+                dragging = true;
+            }
+        });
+        root.setOnMouseDragged(event -> {
+            if (dragging) {
+                root.setTranslateX(shiftX + event.getScreenX() - x - (canvas.getWidth()) * (1 - root.getScaleX()) / 2);
+                root.setTranslateY(shiftY + event.getScreenY() - y - (canvas.getHeight()) * (1 - root.getScaleY()) / 2);
+            }
+        });
+        root.setOnMouseReleased(event -> {
+            if (dragging) {
+                dragging = false;
+
+                shiftX = root.getTranslateX() + canvas.getWidth() * (1 - root.getScaleX()) / 2;
+                shiftY = root.getTranslateY() + canvas.getHeight() * (1 - root.getScaleY()) / 2;
+            }
         });
         root.setOnMouseClicked(event -> {
-            double mouseX = event.getSceneX() / root.getScaleX();
-            double mouseY = event.getSceneY() / root.getScaleY();
+            double mouseX = event.getX(); // root.getScaleX();
+            double mouseY = event.getY(); // root.getScaleY();
 
             switch (event.getButton()) {
                 case PRIMARY:
-                    Circle tree = new Circle(mouseX, mouseY, 20.0D + Math.random() * 30);
+                    if (event.isShiftDown()) {
+                        Circle tree = new Circle(mouseX, mouseY, 20.0D + Math.random() * 30, GREEN);
 
-                    tree.setFill(GREEN);
-                    tree.setOnMouseClicked(e -> {
-                        root.getChildren().remove(tree);
-                        e.consume();
-                    });
+                        tree.setOnMouseClicked(e -> {
+                            root.getChildren().remove(tree);
+                            e.consume();
+                        });
 
-                    root.getChildren().add(tree);
+                        root.getChildren().add(tree);
+                    } else if (event.isControlDown()) {
+                        Circle tower = new Circle(mouseX, mouseY, 50, GRAY);
+
+                        tower.setOnMouseClicked(e -> {
+                            root.getChildren().remove(tower);
+                            e.consume();
+                        });
+
+                        root.getChildren().add(tower);
+                    }
                     break;
                 case SECONDARY:
-                    Circle tower = new Circle(mouseX, mouseY, 50);
+                    Circle me = new Circle(mouseX, mouseY, 35, RED);
 
-                    tower.setFill(GRAY);
-                    tower.setOnMouseClicked(e -> {
-                        root.getChildren().remove(tower);
-                        e.consume();
-                    });
-
-                    root.getChildren().add(tower);
-                    break;
-                case MIDDLE:
-                    Circle me = new Circle(mouseX, mouseY, 35);
-
-                    me.setFill(RED);
                     me.setOnMouseClicked(e -> {
                         root.getChildren().remove(me);
                         e.consume();
@@ -141,22 +177,20 @@ public class Window extends Application {
         primaryStage.show();
 
         primaryStage.getScene().setOnKeyPressed(event -> {
-            if (event.isControlDown()) {
-                switch (event.getCode()) {
-                    case C:
+            switch (event.getCode()) {
+                case S:
+                    if (event.isControlDown()) {
                         store(root);
-                        break;
-                    case V:
-                        canvas.getGraphicsContext2D().clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                    }
+                    break;
+                case SPACE:
+                    root.getChildren().clear();
+                    root.getChildren().add(canvas);
 
-                        root.getChildren().clear();
-                        root.getChildren().add(canvas);
+                    load(root);
 
-                        load(root);
-
-                        execute(root, canvas);
-                        break;
-                }
+                    execute(root, canvas);
+                    break;
             }
         });
     }
@@ -189,6 +223,8 @@ public class Window extends Application {
     }
 
     private void execute(Group root, Canvas canvas) {
+        canvas.getGraphicsContext2D().clearRect(10, 10, canvas.getWidth() - 10, canvas.getHeight() - 10);
+
         Thread calc = new Thread(() -> {
             GraphicsContext gc = canvas.getGraphicsContext2D();
             World world = setupWorld(root.getChildren());
@@ -198,7 +234,19 @@ public class Window extends Application {
             long time = System.currentTimeMillis();
             LOG.printf("Started...%n");
 
-            Collection<Point> points = PathFinder.aStar().traverse(world, new Point(me), new Point(world.getBuildings()[0]), me.getRadius(), e -> Platform.runLater(() -> gc.getPixelWriter().setColor((int) e.x, (int) e.y, DARKBLUE)));
+            Collection<Point> points = PathFinder.aStar().traverse(world, new Point(me), new Point(world.getBuildings()[0]), me.getRadius(), (p, t) -> Platform.runLater(() -> {
+                switch (t) {
+                    case "BorderNode":
+                        gc.getPixelWriter().setColor((int) p.x, (int) p.y, RED);
+                        break;
+                    case "UnitNode":
+                        gc.getPixelWriter().setColor((int) p.x, (int) p.y, GREEN);
+                        break;
+                    default:
+                        gc.getPixelWriter().setColor((int) p.x, (int) p.y, DARKBLUE);
+                        break;
+                }
+            }));
 
             LOG.printf("Completed: %d ms%n", System.currentTimeMillis() - time);
 

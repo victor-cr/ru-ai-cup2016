@@ -1,10 +1,11 @@
 package com.codegans.ai.cup2016.navigator;
 
 import com.codegans.ai.cup2016.model.Point;
+import com.codegans.ai.cup2016.navigator.astar.AStarPathFinder;
 import model.World;
 
 import java.util.Collection;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * JavaDoc here
@@ -17,7 +18,7 @@ public interface PathFinder {
         return traverse(world, start, finish, radius, null);
     }
 
-    Collection<Point> traverse(World world, Point start, Point finish, double radius, Consumer<Point> logger);
+    Collection<Point> traverse(World world, Point start, Point finish, double radius, BiConsumer<Point, String> logger);
 
     static AStarPathFinder aStar() {
         return new AStarPathFinder();

@@ -2,6 +2,7 @@ package com.codegans.ai.cup2016;
 
 import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.PathFinder;
+import com.codegans.ai.visualize.VisualLog;
 import model.Building;
 import model.Faction;
 import model.LivingUnit;
@@ -255,24 +256,29 @@ public class GameMap {
             Point me = new Point(self);
 
             if (!canPass(me, point, self.getRadius())) {
-                path.clear();
-                path.addAll(PathFinder.aStar().traverse(world, me, target, self.getRadius()));
-                index = 1;
-                point = path.get(index);
+                recalculate();
+                point = path.size() > 1 ? path.get(index) : path.get(0);
             }
+
+            VisualLog.publishPath(path, point);
 
             return point;
         }
 
         private NavigatorImpl target(Point target) {
-            if (path.isEmpty() || !path.contains(target)) {
-                path.clear();
-                path.addAll(PathFinder.aStar().traverse(world, new Point(self), target, self.getRadius()));
-            }
-
             this.target = target;
 
+            if (path.isEmpty() || !path.contains(target)) {
+                recalculate();
+            }
+
             return this;
+        }
+
+        private void recalculate() {
+            path.clear();
+            path.addAll(PathFinder.aStar().traverse(world, new Point(self), target, self.getRadius()));
+            index = 1;
         }
     }
 }
