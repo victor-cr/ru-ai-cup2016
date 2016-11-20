@@ -25,7 +25,8 @@ import java.util.stream.IntStream;
 public class AStarPathFinder implements PathFinder {
     private static final int STEP = 5;
     private static final int PADDING = STEP * 2;
-    private static final int MAX_POINTS = 10000;
+    private static final int MAX_AREA = 200;
+    private static final int MAX_POINTS = 2000;
     private static final Logger LOG = LoggerFactory.getLogger();
 
     @Override
@@ -40,6 +41,8 @@ public class AStarPathFinder implements PathFinder {
 
         LivingUnit unit = cd.unitAt(finish.x, finish.y);
 
+        double emergencyArea = unit == null && cd.unitsAt(finish.x, finish.y, MAX_AREA).count() > 2 ? MAX_AREA : PADDING;
+
         opened.offer(starNode);
 
         int i = 0;
@@ -52,7 +55,7 @@ public class AStarPathFinder implements PathFinder {
 
             AStarNode node = opened.poll();
 
-            if (node.isTarget() || unit != null && cd.isNear(node.x, node.y, radius + PADDING, unit)) {
+            if (node.isTarget() || unit != null && cd.isNear(node.x, node.y, radius + emergencyArea, unit)) {
                 return constructPath(cd, node, radius);
             }
 

@@ -48,6 +48,7 @@ public class VisualLogger implements Logger {
 
     private final Map<Long, Circle> trees = new HashMap<>();
     private final Map<Long, Circle> towers = new HashMap<>();
+    private long time = 0;
 
     public VisualLogger() {
         if (LAUNCHED.get() && !VISUAL_THREAD.isAlive()) {
@@ -112,7 +113,12 @@ public class VisualLogger implements Logger {
 
     @Override
     public void logState(Wizard self, World world, Game game, Move move) {
-        System.out.printf("%n<%d>-------[%d]@(%.3f,%.3f)%n", world.getTickIndex(), self.getLife(), self.getX(), self.getY());
+        long current = System.currentTimeMillis();
+        long delta = time == 0 ? 0 : current - time;
+
+        time = current;
+
+        System.out.printf("%n<%5d>---->%5d ms<----[%d]@(%.3f,%.3f)%n", world.getTickIndex(), delta, self.getLife(), self.getX(), self.getY());
 
         Collection<Circle> data = Stream.concat(
                 Stream.concat(

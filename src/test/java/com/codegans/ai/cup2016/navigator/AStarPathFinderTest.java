@@ -23,7 +23,7 @@ class AStarPathFinderTest {
     void testDirectPath_InCorner() {
         MockWizard self = new MockWizard(35, 35, Faction.ACADEMY, true);
 
-        Point target = new Point(2000, 2000);
+        Point target = new Point(1995, 1995);
         MockWorld world = new MockWorld(4000, 4000).add(self);
 
         Collection<Point> expected = new ArrayList<>(Arrays.asList(new Point(self), target));
