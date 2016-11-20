@@ -2,6 +2,7 @@ package com.codegans.ai.cup2016.model;
 
 import model.Unit;
 
+import static java.lang.StrictMath.abs;
 import static java.lang.StrictMath.max;
 import static java.lang.StrictMath.min;
 
@@ -57,6 +58,10 @@ public final class Point {
         return new Point(x - base.x, y - base.y);
     }
 
+    public Point reflectTo(Point base) {
+        return new Point(base.x * 2 - x, base.y * 2 - y);
+    }
+
     public Point shiftTo(Point other, double gravity) {
         double val = (1 + max(min(gravity, 1.0D), -1.0D)) / 2;
 
@@ -74,7 +79,11 @@ public final class Point {
 
     @Override
     public boolean equals(Object obj) {
-        return obj != null && obj instanceof Point && x - ((Point) obj).x < 0.001D && y - ((Point) obj).y < 0.001D;
+        return obj != null && obj instanceof Point && equals((Point) obj);
+    }
+
+    public boolean equals(Point other) {
+        return other != null && Double.compare(abs(x - other.x), 0.001D) < 0 && Double.compare(abs(y - other.y), 0.001D) < 0;
     }
 
     @Override

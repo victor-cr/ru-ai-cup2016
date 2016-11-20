@@ -3,6 +3,8 @@ package com.codegans.ai.visualize;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
+import com.codegans.ai.cup2016.navigator.CollisionDetectorFactory;
+import com.codegans.ai.cup2016.navigator.GameMap;
 import com.codegans.ai.cup2016.navigator.PathFinder;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -234,7 +236,9 @@ public class Window extends Application {
             long time = System.currentTimeMillis();
             LOG.printf("Started...%n");
 
-            Collection<Point> points = PathFinder.aStar().traverse(world, new Point(me), new Point(world.getBuildings()[0]), me.getRadius(), (p, t) -> Platform.runLater(() -> {
+            CollisionDetectorFactory factory = GameMap.get(world).collisionDetector();
+
+            Collection<Point> full = PathFinder.aStar().traverse(factory.full(), new Point(me), new Point(world.getBuildings()[0]), me.getRadius(), (p, t) -> Platform.runLater(() -> {
                 switch (t) {
                     case "BorderNode":
                         gc.getPixelWriter().setColor((int) p.x, (int) p.y, RED);
@@ -247,6 +251,19 @@ public class Window extends Application {
                         break;
                 }
             }));
+            Collection<Point> staticOnly = PathFinder.aStar().traverse(factory.staticOnly(), new Point(me), new Point(world.getBuildings()[0]), me.getRadius(), (p, t) -> Platform.runLater(() -> {
+                switch (t) {
+                    case "BorderNode":
+                        gc.getPixelWriter().setColor((int) p.x + 1, (int) p.y, RED);
+                        break;
+                    case "UnitNode":
+                        gc.getPixelWriter().setColor((int) p.x + 1, (int) p.y, GREEN);
+                        break;
+                    default:
+                        gc.getPixelWriter().setColor((int) p.x + 1, (int) p.y, DARKBLUE);
+                        break;
+                }
+            }));
 
             LOG.printf("Completed: %d ms%n", System.currentTimeMillis() - time);
 
@@ -254,9 +271,16 @@ public class Window extends Application {
                 gc.setFill(BLACK);
                 gc.setLineWidth(5);
                 gc.strokePolyline(
-                        points.stream().mapToDouble(e -> e.x).toArray(),
-                        points.stream().mapToDouble(e -> e.y).toArray(),
-                        points.size()
+                        full.stream().mapToDouble(e -> e.x).toArray(),
+                        full.stream().mapToDouble(e -> e.y).toArray(),
+                        full.size()
+                );
+                gc.setFill(RED);
+                gc.setLineWidth(5);
+                gc.strokePolyline(
+                        staticOnly.stream().mapToDouble(e -> e.x).toArray(),
+                        staticOnly.stream().mapToDouble(e -> e.y).toArray(),
+                        staticOnly.size()
                 );
             });
         });

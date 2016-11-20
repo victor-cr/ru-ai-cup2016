@@ -6,7 +6,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.codegans.ai.cup2016.GameMap" level="WARN"/>
+    <logger name="com.codegans.ai.cup2016.navigator.GameMap" level="WARN"/>
 
     <root level="debug">
         <appender-ref ref="STDOUT"/>

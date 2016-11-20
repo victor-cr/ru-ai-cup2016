@@ -1,12 +1,11 @@
 package com.codegans.ai.cup2016.navigator.astar;
 
-import com.codegans.ai.cup2016.GameMap;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
+import com.codegans.ai.cup2016.navigator.CollisionDetector;
 import com.codegans.ai.cup2016.navigator.PathFinder;
 import model.LivingUnit;
-import model.World;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -25,37 +25,35 @@ import java.util.stream.IntStream;
 public class AStarPathFinder implements PathFinder {
     private static final int STEP = 5;
     private static final int PADDING = STEP * 2;
-    private static final int TIMEOUT = 1000;
+    private static final int MAX_POINTS = 10000;
     private static final Logger LOG = LoggerFactory.getLogger();
 
     @Override
-    public Collection<Point> traverse(World world, Point start, Point finish, double radius, BiConsumer<Point, String> logger) {
-        int width = (int) world.getWidth();
-        int height = (int) world.getHeight();
+    public Collection<Point> traverse(CollisionDetector cd, Point start, Point finish, double radius, BiConsumer<Point, String> logger) {
+        int width = (int) cd.width();
+        int height = (int) cd.height();
         PriorityQueue<AStarNode> opened = new PriorityQueue<>();
         AStarNode[] closed = new AStarNode[width * height];
-        GameMap map = GameMap.get(world);
         Direction[] directions = Direction.values();
 
         AStarNode starNode = new StartNode(start, finish, STEP);
 
-        LivingUnit unit = map.findAt(finish.x, finish.y);
+        LivingUnit unit = cd.unitAt(finish.x, finish.y);
 
         opened.offer(starNode);
 
         int i = 0;
-        long startTime = System.currentTimeMillis();
 
         while (!opened.isEmpty()) {
-            if ((i++ % 10000) == 0 && System.currentTimeMillis() > startTime + TIMEOUT) {
+            if (++i > MAX_POINTS) {
                 LOG.printf("Terminated by timeout%n");
                 break;
             }
 
             AStarNode node = opened.poll();
 
-            if (node.isTarget() || unit != null && map.isNear(node.x, node.y, radius + PADDING, unit)) {
-                return constructPath(map, node, radius);
+            if (node.isTarget() || unit != null && cd.isNear(node.x, node.y, radius + PADDING, unit)) {
+                return constructPath(cd, node, radius);
             }
 
             for (Direction direction : directions) {
@@ -63,12 +61,12 @@ public class AStarPathFinder implements PathFinder {
                 int y = node.y + direction.dy;
 
                 if (x >= 0 && y >= 0 && x < width && y < height) {
-                    Collection<LivingUnit> units = map.findAll(x, y, radius);
+                    Collection<LivingUnit> units = cd.unitsAt(x, y, radius).collect(Collectors.toList());
                     AStarNode child;
 
                     if (!units.isEmpty()) {
                         child = new UnitNode(x, y, node, units);
-                    } else if (!map.available(x, y, radius + PADDING)) {
+                    } else if (!cd.available(x, y, radius + PADDING)) {
                         child = new BorderNode(x, y, node);
                     } else {
                         child = new EmptyNode(x, y, node);
@@ -103,25 +101,25 @@ public class AStarPathFinder implements PathFinder {
             }
         }
 
-        return constructPath(map, best, radius);
+        return constructPath(cd, best, radius);
     }
 
     private static int index(int x, int y, int width) {
         return (x + y * width) / STEP;
     }
 
-    private Collection<Point> constructPath(GameMap map, AStarNode node, double radius) {
+    private Collection<Point> constructPath(CollisionDetector cd, AStarNode node, double radius) {
         List<Point> result = new ArrayList<>();
 
         while (node != null) {
             result.add(new Point(node.x, node.y));
 
-            node = optimizePath(map, node, radius);
+            node = optimizePath(cd, node, radius);
         }
 
         for (int i = 0; i < result.size(); i++) {
             for (int j = result.size() - 1; j > i + 1; j--) {
-                if (map.canPass(result.get(i), result.get(j), radius + PADDING)) {
+                if (cd.canPass(result.get(i), result.get(j), radius + PADDING)) {
                     int from = i + 1;
                     IntStream.range(from, j - 1).forEach(e -> result.remove(from));
                     break;
@@ -134,10 +132,10 @@ public class AStarPathFinder implements PathFinder {
         return result;
     }
 
-    private AStarNode optimizePath(GameMap map, AStarNode node, double radius) {
+    private AStarNode optimizePath(CollisionDetector cd, AStarNode node, double radius) {
         AStarNode previous = node.previous();
 
-        for (AStarNode temp = previous; temp != null && map.canPass(node.toPoint(), previous.toPoint(), radius + STEP * 2); temp = previous.previous()) {
+        for (AStarNode temp = previous; temp != null && cd.canPass(node.toPoint(), previous.toPoint(), radius + STEP * 2); temp = previous.previous()) {
             previous = temp;
         }
 

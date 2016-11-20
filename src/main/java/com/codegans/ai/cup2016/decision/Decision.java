@@ -6,6 +6,8 @@ import model.Move;
 import model.Wizard;
 import model.World;
 
+import java.util.stream.Stream;
+
 /**
  * JavaDoc here
  *
@@ -18,6 +20,7 @@ public interface Decision {
     int MEDIUM = HIGH * 10;
     int LOW = MEDIUM * 10;
     int MINOR = 10 * LOW;
+    int IGNORE = 10 * MINOR;
 
-    Action decide(Wizard self, World world, Game game, Move move);
+    Stream<Action> decide(Wizard self, World world, Game game, Move move);
 }

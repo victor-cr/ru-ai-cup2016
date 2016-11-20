@@ -12,7 +12,8 @@ import java.util.Collection;
  * @since 17.11.2016 8:30
  */
 public class UnitNode extends AStarNode {
-    private static final double LIFE_WEIGHT = G_WEIGHT * 10;
+    private static final int HIT_WEIGHT = 10;
+    private static final double LIFE_WEIGHT = G_WEIGHT + HIT_WEIGHT;
 
     private final Collection<LivingUnit> units;
 
@@ -34,6 +35,7 @@ public class UnitNode extends AStarNode {
 
         double life = units.stream().mapToInt(LivingUnit::getLife).average().orElse(0);
 
-        return super.distanceFrom(target) + life * LIFE_WEIGHT;
+
+        return super.distanceFrom(target) + StrictMath.floor(life / HIT_WEIGHT) * LIFE_WEIGHT;
     }
 }

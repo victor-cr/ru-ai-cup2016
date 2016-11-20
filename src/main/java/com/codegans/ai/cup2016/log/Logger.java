@@ -1,9 +1,13 @@
 package com.codegans.ai.cup2016.log;
 
-import com.codegans.ai.cup2016.Navigator;
 import com.codegans.ai.cup2016.action.Action;
+import com.codegans.ai.cup2016.model.Point;
+import model.Game;
+import model.Move;
 import model.Wizard;
 import model.World;
+
+import java.util.Collection;
 
 /**
  * JavaDoc here
@@ -18,7 +22,7 @@ public interface Logger {
 
     void action(Action action);
 
-    void wizard(Wizard car, Navigator navigator);
+    void logPath(Collection<Point> path, Point target);
 
-    void others(World world);
+    void logState(Wizard self, World world, Game game, Move move);
 }

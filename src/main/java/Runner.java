@@ -1,5 +1,7 @@
-import com.codegans.ai.visualize.VisualLog;
-import model.*;
+import model.Game;
+import model.Move;
+import model.PlayerContext;
+import model.Wizard;
 
 import java.io.IOException;
 
@@ -47,9 +49,6 @@ public final class Runner {
                     strategies[wizardIndex /*playerWizard.getTeammateIndex()*/].move(
                             playerWizard, playerContext.getWorld(), game, move
                     );
-                    //START
-                    VisualLog.intercept(playerWizard, playerContext.getWorld(), game, move);
-                    //END
                 }
 
                 remoteProcessClient.writeMoves(moves);

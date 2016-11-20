@@ -1,9 +1,13 @@
 package com.codegans.ai.cup2016.log;
 
-import com.codegans.ai.cup2016.Navigator;
 import com.codegans.ai.cup2016.action.Action;
+import com.codegans.ai.cup2016.model.Point;
+import model.Game;
+import model.Move;
 import model.Wizard;
 import model.World;
+
+import java.util.Collection;
 
 /**
  * JavaDoc here
@@ -25,10 +29,10 @@ public class NullLogger implements Logger {
     }
 
     @Override
-    public void wizard(Wizard wizard, Navigator navigator) {
+    public void logPath(Collection<Point> path, Point target) {
     }
 
     @Override
-    public void others(World world) {
+    public void logState(Wizard self, World world, Game game, Move move) {
     }
 }

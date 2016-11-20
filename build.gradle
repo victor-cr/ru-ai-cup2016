@@ -49,6 +49,7 @@ task copySources(type: Sync) {
     include "model/*.java"
     include "*Strategy.java"
     exclude "**/visualize"
+    exclude "**/VisualLogger"
   }
   from fileTree("src/main/java/${project.group.replace('.', '/')}").files
 }

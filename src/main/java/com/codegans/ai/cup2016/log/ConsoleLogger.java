@@ -1,14 +1,13 @@
 package com.codegans.ai.cup2016.log;
 
-import com.codegans.ai.cup2016.Navigator;
 import com.codegans.ai.cup2016.action.Action;
+import com.codegans.ai.cup2016.model.Point;
+import model.Game;
+import model.Move;
 import model.Wizard;
 import model.World;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
@@ -20,7 +19,6 @@ import java.util.stream.Collectors;
  */
 public class ConsoleLogger implements Logger {
     private volatile PrintStream out = System.out;
-    private final PrintStream nullOut = new PrintStream(NullOutputStream.INSTANCE);
 
     @Override
     public void print(Object message) {
@@ -62,22 +60,12 @@ public class ConsoleLogger implements Logger {
     }
 
     @Override
-    public void wizard(Wizard wizard, Navigator navigator) {
-        printf("%s%n", wizard);
+    public void logPath(Collection<Point> path, Point target) {
+        printf("%s -> %s%n", path, target);
     }
 
     @Override
-    public void others(World world) {
-        printf("All wizards: %s%n", Arrays.asList(world.getWizards()));
-    }
-
-    private static class NullOutputStream extends OutputStream {
-        private static final NullOutputStream INSTANCE = new NullOutputStream();
-
-        private NullOutputStream() {
-        }
-
-        public void write(int b) throws IOException {
-        }
+    public void logState(Wizard self, World world, Game game, Move move) {
+        printf("%n<%d>-------[%d]@(%.3f,%.3f)%n", world.getTickIndex(), self.getLife(), self.getX(), self.getY());
     }
 }

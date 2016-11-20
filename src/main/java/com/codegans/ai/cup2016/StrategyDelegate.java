@@ -1,12 +1,14 @@
 package com.codegans.ai.cup2016;
 
 import com.codegans.ai.cup2016.action.Action;
+import com.codegans.ai.cup2016.decision.BattleMoveDecision;
+import com.codegans.ai.cup2016.decision.MissileAttackDecision;
+import com.codegans.ai.cup2016.decision.StaffAttackDecision;
 import com.codegans.ai.cup2016.decision.Decision;
-import com.codegans.ai.cup2016.decision.MoveCommandDecision;
-import com.codegans.ai.cup2016.decision.MoveDecision;
+import com.codegans.ai.cup2016.decision.CheckpointMoveDecision;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
-import model.ActionType;
+import com.codegans.ai.cup2016.navigator.GameMap;
 import model.Game;
 import model.Move;
 import model.Wizard;
@@ -24,28 +26,39 @@ import java.util.stream.Collectors;
  * @since 14.11.2016 19:04
  */
 public class StrategyDelegate {
-    private final Logger log = LoggerFactory.getLogger();
+    private static final Logger LOG = LoggerFactory.getLogger();
 
     private final Collection<Decision> decisions = Arrays.asList(
-            new MoveDecision(),
-            new MoveCommandDecision()
+//            new MoveToSafetyDecision(),
+            new BattleMoveDecision(),
+            new CheckpointMoveDecision(),
+            new StaffAttackDecision(),
+            new MissileAttackDecision()
     );
 
     public void move(Wizard self, World world, Game game, Move move) {
-        if (self.getLife() <= 0) {
-            log.printf("Still dead: %d%n", self.getRemainingActionCooldownTicks());
-            move.setAction(ActionType.NONE);
-            return;
-        }
+        GameMap.get(world); // update counter
 
-        decisions.stream()
-                .map(e -> e.decide(self, world, game, move))
+        LOG.logState(self, world, game, move);
+
+//        try {
+//            Thread.currentThread().sleep(100);
+//        } catch (InterruptedException e) {
+//        }
+
+        Collection<Action> actions = decisions.stream()
+                .flatMap(e -> e.decide(self, world, game, move))
                 .sorted()
                 .collect(Collectors.toMap(Action::getClass, e -> e, (l, r) -> l, HashMap::new))
-                .values().stream()
+                .values();
+
+        LOG.printf(">====START=ACTIONS====%n");
+
+        actions.stream()
                 .sorted()
-                .peek(e -> log.printf("<%d>-------%n", world.getTickIndex()))
-                .peek(log::action)
-                .forEach(e -> e.apply(self, world, game, move));
+                .peek(LOG::action)
+                .forEach(e -> e.apply(move));
+
+        LOG.printf(">====FINISH=ACTIONS====%n");
     }
 }

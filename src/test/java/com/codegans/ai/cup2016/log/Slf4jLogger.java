@@ -1,11 +1,14 @@
 package com.codegans.ai.cup2016.log;
 
-import com.codegans.ai.cup2016.Navigator;
 import com.codegans.ai.cup2016.action.Action;
+import com.codegans.ai.cup2016.model.Point;
+import model.Game;
+import model.Move;
 import model.Wizard;
 import model.World;
 
 import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * JavaDoc here
@@ -44,12 +47,12 @@ public class Slf4jLogger implements Logger {
     }
 
     @Override
-    public void wizard(Wizard wizard, Navigator navigator) {
-        printf("%s%n", wizard);
+    public void logPath(Collection<Point> path, Point target) {
+        printf("%s -> %s%n", path, target);
     }
 
     @Override
-    public void others(World world) {
-        printf("All wizards: %s%n", Arrays.asList(world.getWizards()));
+    public void logState(Wizard self, World world, Game game, Move move) {
+        printf("%n<%d>-------[%d]@(%.3f,%.3f)%n", world.getTickIndex(), self.getLife(), self.getX(), self.getY());
     }
 }

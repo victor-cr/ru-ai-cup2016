@@ -1,5 +1,6 @@
-package com.codegans.ai.visualize;
+package com.codegans.ai.cup2016.log;
 
+import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.model.Point;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -9,6 +10,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import model.Game;
 import model.Move;
@@ -38,52 +40,16 @@ import static javafx.scene.paint.Color.ROSYBROWN;
  * @author Victor Polischuk
  * @since 19.11.2016 12:20
  */
-public class VisualLog extends Application {
+public class VisualLogger implements Logger {
     private static final AtomicBoolean LAUNCHED = new AtomicBoolean(false);
     private static final CyclicBarrier BARRIER = new CyclicBarrier(2);
-    private static final Thread VISUAL_THREAD = new Thread(() -> {
-        launch(VisualLog.class);
-        System.out.println("Bye, bye");
-    }, "visual");
-    private static volatile VisualLog instance;
+    private static final Thread VISUAL_THREAD = new Thread(() -> Application.launch(VisualWindow.class), "visual");
+    private static volatile VisualWindow window;
 
     private final Map<Long, Circle> trees = new HashMap<>();
     private final Map<Long, Circle> towers = new HashMap<>();
 
-    private volatile Group root;
-    private volatile Canvas foreground;
-
-
-    public static void intercept(Wizard self, World world, Game game, Move move) {
-        initialize();
-
-        instance.listen(self, world, game, move);
-    }
-
-    public static void publishPath(Collection<Point> path, Point nextTarget) {
-        initialize();
-
-        Platform.runLater(() -> {
-            Canvas canvas = instance.foreground;
-
-            GraphicsContext gc = canvas.getGraphicsContext2D();
-
-            gc.clearRect(10, 10, canvas.getWidth() - 10, canvas.getHeight() - 10);
-
-            gc.setFill(BLACK);
-            gc.setLineWidth(5);
-            gc.strokePolyline(
-                    path.stream().mapToDouble(e -> e.x).toArray(),
-                    path.stream().mapToDouble(e -> e.y).toArray(),
-                    path.size()
-            );
-
-            gc.setFill(BLACK);
-            gc.strokeText("x", nextTarget.x, nextTarget.y);
-        });
-    }
-
-    private static void initialize() {
+    public VisualLogger() {
         if (LAUNCHED.get() && !VISUAL_THREAD.isAlive()) {
             return;
         }
@@ -103,29 +69,51 @@ public class VisualLog extends Application {
     }
 
     @Override
-    public void start(Stage primaryStage) throws Exception {
-        root = new Group();
-        foreground = new Canvas(4000, 4000);
-
-        root.getChildren().add(foreground);
-        root.setScaleX(0.25);
-        root.setScaleY(0.25);
-        root.setTranslateX(0 - foreground.getWidth() * (1 - 0.25) / 2);
-        root.setTranslateY(0 - foreground.getHeight() * (1 - 0.25) / 2);
-
-        foreground.getGraphicsContext2D().setStroke(ROSYBROWN);
-        foreground.getGraphicsContext2D().setLineWidth(10);
-        foreground.getGraphicsContext2D().strokeRect(0, 0, foreground.getWidth(), foreground.getHeight());
-
-        primaryStage.setScene(new Scene(root, 1000, 1000, Color.WHITE));
-        primaryStage.show();
-
-        instance = this;
-
-        BARRIER.await();
+    public void print(Object message) {
+        System.out.print(message);
     }
 
-    private void listen(Wizard self, World world, Game game, Move move) {
+    @Override
+    public void printf(String pattern, Object... params) {
+        try {
+            System.out.printf(pattern, params);
+        } catch (RuntimeException e) {
+            //ignore
+        }
+    }
+
+    @Override
+    public void action(Action action) {
+        System.out.printf("Perform action: %s%n", action);
+    }
+
+    @Override
+    public void logPath(Collection<Point> path, Point nextTarget) {
+        Platform.runLater(() -> {
+            Canvas canvas = window.foreground;
+
+            GraphicsContext gc = canvas.getGraphicsContext2D();
+
+            gc.clearRect(10, 10, canvas.getWidth() - 10, canvas.getHeight() - 10);
+
+            gc.setFill(BLACK);
+            gc.setLineWidth(5);
+            gc.strokePolyline(
+                    path.stream().mapToDouble(e -> e.x).toArray(),
+                    path.stream().mapToDouble(e -> e.y).toArray(),
+                    path.size()
+            );
+
+            gc.setFill(BLACK);
+            gc.setFont(Font.font(22));
+            gc.strokeText("x", nextTarget.x, nextTarget.y);
+        });
+    }
+
+    @Override
+    public void logState(Wizard self, World world, Game game, Move move) {
+        System.out.printf("%n<%d>-------[%d]@(%.3f,%.3f)%n", world.getTickIndex(), self.getLife(), self.getX(), self.getY());
+
         Collection<Circle> data = Stream.concat(
                 Stream.concat(
                         Arrays.stream(world.getTrees())
@@ -143,12 +131,40 @@ public class VisualLog extends Application {
         ).collect(Collectors.toList());
 
         Platform.runLater(() -> {
-            root.getChildren().removeAll(root.getChildren().stream()
+            window.root.getChildren().removeAll(window.root.getChildren().stream()
                     .filter(e -> e instanceof Circle)
                     .map(e -> (Circle) e)
                     .filter(e -> e.getFill().equals(BLUE) || e.getFill().equals(RED) || e.getFill().equals(BLACK))
                     .collect(Collectors.toList()));
-            root.getChildren().addAll(0, data);
+            window.root.getChildren().addAll(0, data);
         });
+    }
+
+    public static final class VisualWindow extends Application {
+        private volatile Group root;
+        private volatile Canvas foreground;
+
+        @Override
+        public void start(Stage primaryStage) throws Exception {
+            root = new Group();
+            foreground = new Canvas(4000, 4000);
+
+            root.getChildren().add(foreground);
+            root.setScaleX(0.25);
+            root.setScaleY(0.25);
+            root.setTranslateX(0 - foreground.getWidth() * (1 - 0.25) / 2);
+            root.setTranslateY(0 - foreground.getHeight() * (1 - 0.25) / 2);
+
+            foreground.getGraphicsContext2D().setStroke(ROSYBROWN);
+            foreground.getGraphicsContext2D().setLineWidth(10);
+            foreground.getGraphicsContext2D().strokeRect(0, 0, foreground.getWidth(), foreground.getHeight());
+
+            primaryStage.setScene(new Scene(root, 1000, 1000, Color.WHITE));
+            primaryStage.show();
+
+            window = this;
+
+            BARRIER.await();
+        }
     }
 }
