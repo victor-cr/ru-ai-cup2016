@@ -25,7 +25,7 @@ import static model.SkillType.RANGE_BONUS_PASSIVE_1;
  * @author Victor Polischuk
  * @since 14.11.2016 21:08
  */
-public class LevelUpDecision extends AbstractMoveDecision {
+public class LevelUpDecision implements Decision {
     private static final Logger LOG = LoggerFactory.getLogger();
 
     private final Collection<SkillType> remaining = EnumSet.allOf(SkillType.class);

@@ -7,11 +7,15 @@ import com.codegans.ai.cup2016.action.TurnAction;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
+import com.codegans.ai.cup2016.navigator.CollisionDetector;
 import com.codegans.ai.cup2016.navigator.GameMap;
+import com.codegans.ai.cup2016.navigator.Navigator;
 import com.codegans.ai.cup2016.navigator.PointQueue;
 import model.Game;
 import model.LivingUnit;
+import model.Move;
 import model.Wizard;
+import model.World;
 
 import java.util.stream.Stream;
 
@@ -26,7 +30,38 @@ import static java.lang.StrictMath.*;
 public abstract class AbstractMoveDecision implements Decision {
     protected static final Logger LOG = LoggerFactory.getLogger();
     private static final double SAFE_POINT_DISTANCE = 50;
+
     private final PointQueue safePoints = new PointQueue(10);
+    protected Navigator navigator;
+    protected CollisionDetector fullCd;
+
+    @Override
+    public Stream<Action> decide(Wizard self, World world, Game game, Move move) {
+        GameMap map = GameMap.get(world);
+
+        if (navigator == null || fullCd == null) {
+            navigator = map.navigator().staticOnly();
+            fullCd = map.collisionDetector().full();
+        }
+
+        double x = self.getX();
+        double y = self.getY();
+        double r = self.getVisionRange();
+
+        boolean safe = fullCd.unitsAt(x, y, r).noneMatch(map::isEnemy);
+
+        if (safe) {
+            Point me = new Point(self);
+
+            if (safePoints.size() == 0 || Double.compare(safePoints.tail(0).distanceTo(me), SAFE_POINT_DISTANCE) > 0) {
+                safePoints.offer(me);
+            }
+        }
+
+        return doActions(self, world, game, map, navigator);
+    }
+
+    protected abstract Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, Navigator navigator);
 
     protected Stream<Action> retreat(Wizard self, Game game, GameMap map, int score) {
         Point retreat = map.home();

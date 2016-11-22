@@ -6,7 +6,6 @@ import com.codegans.ai.cup2016.navigator.CollisionDetector;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import com.codegans.ai.cup2016.navigator.Navigator;
 import model.Game;
-import model.Move;
 import model.Wizard;
 import model.World;
 
@@ -26,15 +25,12 @@ public class CollisionMoveDecision extends AbstractMoveDecision {
     private final Random random = new Random();
 
     private CollisionDetector cd;
-    private Navigator navigator;
 
     @Override
-    public Stream<Action> decide(Wizard self, World world, Game game, Move move) {
-        GameMap map = GameMap.get(world);
+    protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, Navigator navigator) {
 
         if (cd == null) {
             cd = map.collisionDetector().full();
-            navigator = map.navigator().staticOnly();
         }
 
         double x = self.getX();

@@ -2,16 +2,14 @@ package com.codegans.ai.cup2016.decision;
 
 import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.model.Point;
-import com.codegans.ai.cup2016.navigator.CollisionDetector;
 import com.codegans.ai.cup2016.navigator.GameMap;
-import com.codegans.ai.cup2016.navigator.PointQueue;
+import com.codegans.ai.cup2016.navigator.Navigator;
 import model.ActionType;
 import model.Building;
 import model.Game;
 import model.LivingUnit;
 import model.Minion;
 import model.MinionType;
-import model.Move;
 import model.Wizard;
 import model.World;
 
@@ -33,31 +31,17 @@ public class BattleMoveDecision extends AbstractMoveDecision {
     private static final double SAFE_POINT_DISTANCE = 100;
     private static final double PADDING = 5;
 
-    private final PointQueue safePoints = new PointQueue(10);
-    private CollisionDetector cd;
-
     @Override
-    public Stream<Action> decide(Wizard self, World world, Game game, Move move) {
-        GameMap map = GameMap.get(world);
-
-        if (cd == null) {
-            cd = map.collisionDetector().full();
-        }
-
+    protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, Navigator navigator) {
         double x = self.getX();
         double y = self.getY();
         double r = self.getVisionRange();
 
-        List<LivingUnit> units = cd.unitsAt(x, y, r).collect(Collectors.toList());
+        List<LivingUnit> units = fullCd.unitsAt(x, y, r).collect(Collectors.toList());
 
         LivingUnit enemy = units.stream().filter(map::isEnemy).sorted((a, b) -> Integer.compare(a.getLife(), b.getLife())).limit(1).findAny().orElse(null);
 
         if (enemy == null) {
-            Point me = new Point(self);
-
-            if (safePoints.size() == 0 || Double.compare(safePoints.tail(0).distanceTo(me), SAFE_POINT_DISTANCE) > 0) {
-                safePoints.offer(me);
-            }
             return Stream.empty();
         }
 
@@ -98,7 +82,7 @@ public class BattleMoveDecision extends AbstractMoveDecision {
         if (enemies > 1 && friends < enemies || towerChargeTime > 0 && towerChargeTime < SAFE_COOL_DOWN * 3) {
             LOG.printf("Retreat!!! Tower remain: %d. Enemies around: %d. Friends around: %d%n", towerChargeTime, enemies, friends);
 
-            return retreat(self, game, map, ASAP);
+            return retreat(self, game, map, HIGH);
         }
 
         double enemyAngle = enemy.getAngleTo(self);
