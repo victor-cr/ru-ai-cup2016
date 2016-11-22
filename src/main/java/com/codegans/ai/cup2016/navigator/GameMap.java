@@ -12,6 +12,7 @@ import model.Faction;
 import model.LaneType;
 import model.LivingUnit;
 import model.Minion;
+import model.SkillType;
 import model.Tree;
 import model.Wizard;
 import model.World;
@@ -25,6 +26,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
+import static model.SkillType.*;
 
 /**
  * JavaDoc here
@@ -36,9 +38,17 @@ public class GameMap {
     private static final Object MUTEX = new Object();
     private static final Logger LOG = LoggerFactory.getLogger();
     private static final int HISTORY_SIZE = 10;
+    private static final SkillType[][] BRANCHES = {
+            {RANGE_BONUS_PASSIVE_1, RANGE_BONUS_AURA_1, RANGE_BONUS_PASSIVE_2, RANGE_BONUS_AURA_2, ADVANCED_MAGIC_MISSILE},
+            {MAGICAL_DAMAGE_BONUS_PASSIVE_1, MAGICAL_DAMAGE_BONUS_AURA_1, MAGICAL_DAMAGE_BONUS_PASSIVE_2, MAGICAL_DAMAGE_BONUS_AURA_2, FROST_BOLT},
+            {STAFF_DAMAGE_BONUS_PASSIVE_1, STAFF_DAMAGE_BONUS_AURA_1, STAFF_DAMAGE_BONUS_PASSIVE_2, STAFF_DAMAGE_BONUS_AURA_2, FIREBALL},
+            {MOVEMENT_BONUS_FACTOR_PASSIVE_1, MOVEMENT_BONUS_FACTOR_AURA_1, MOVEMENT_BONUS_FACTOR_PASSIVE_2, MOVEMENT_BONUS_FACTOR_AURA_2, HASTE},
+            {MAGICAL_DAMAGE_ABSORPTION_PASSIVE_1, MAGICAL_DAMAGE_ABSORPTION_AURA_1, MAGICAL_DAMAGE_ABSORPTION_PASSIVE_2, MAGICAL_DAMAGE_ABSORPTION_AURA_2, SHIELD}
+    };
 
     private static volatile GameMap instance;
 
+    private final int[] skills = new int[5];
     private final double width;
     private final double height;
     private final Collection<Tree> trees = new ArrayList<>();
@@ -95,6 +105,47 @@ public class GameMap {
         }
 
         return i.update(world);
+    }
+
+    public int skillBranch(SkillType skill) {
+        for (int i = 0; i < BRANCHES.length; i++) {
+            for (SkillType s : BRANCHES[i]) {
+                if (s == skill) {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    public SkillType[][] unknownSkills() {
+        SkillType[][] result = BRANCHES.clone();
+
+        for (int i = 0; i < result.length; i++) {
+            for (int j = 0; j < skills[i]; j++) {
+                result[i][j] = null;
+            }
+        }
+
+        return result;
+    }
+
+    public boolean learnSkill(SkillType skill) {
+        for (int i = 0; i < BRANCHES.length; i++) {
+            for (int j = 0; j < BRANCHES[i].length; j++) {
+                if (BRANCHES[i][j] == skill) {
+                    if (j == skills[i]) {
+                        skills[i] = j + 1;
+                        return true;
+                    }
+
+                    return false;
+                }
+            }
+        }
+
+        return false;
     }
 
     public double width() {

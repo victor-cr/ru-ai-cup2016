@@ -5,7 +5,9 @@ import com.codegans.ai.cup2016.decision.BattleMoveDecision;
 import com.codegans.ai.cup2016.decision.CheckpointMoveDecision;
 import com.codegans.ai.cup2016.decision.CollisionMoveDecision;
 import com.codegans.ai.cup2016.decision.Decision;
+import com.codegans.ai.cup2016.decision.LevelUpDecision;
 import com.codegans.ai.cup2016.decision.MissileAttackDecision;
+import com.codegans.ai.cup2016.decision.RetreatMoveDecision;
 import com.codegans.ai.cup2016.decision.StaffAttackDecision;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
@@ -30,10 +32,11 @@ public class StrategyDelegate {
     private static final Logger LOG = LoggerFactory.getLogger();
 
     private final Collection<Decision> decisions = Arrays.asList(
-//            new MoveToSafetyDecision(),
+            new RetreatMoveDecision(),
             new CollisionMoveDecision(),
             new BattleMoveDecision(),
             new CheckpointMoveDecision(),
+            new LevelUpDecision(),
             new StaffAttackDecision(),
             new MissileAttackDecision()
     );
