@@ -19,7 +19,7 @@ public interface PathFinder {
 
     Collection<Point> traverse(CollisionDetector cd, Point start, Point finish, double radius, BiConsumer<Point, String> logger);
 
-    static AStarPathFinder aStar() {
+    static PathFinder aStar() {
         return new AStarPathFinder();
     }
 }

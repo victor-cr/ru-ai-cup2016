@@ -26,7 +26,7 @@ public class AStarPathFinder implements PathFinder {
     private static final int STEP = 5;
     private static final int PADDING = STEP * 2;
     private static final int MAX_AREA = 200;
-    private static final int MAX_POINTS = 5000;
+    private static final int MAX_POINTS = 10000;
     private static final Logger LOG = LoggerFactory.getLogger();
 
     @Override

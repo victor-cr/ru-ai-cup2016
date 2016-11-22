@@ -7,6 +7,8 @@ import com.codegans.ai.cup2016.action.TurnAction;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
+import com.codegans.ai.cup2016.navigator.GameMap;
+import com.codegans.ai.cup2016.navigator.PointQueue;
 import model.Game;
 import model.LivingUnit;
 import model.Wizard;
@@ -23,6 +25,27 @@ import static java.lang.StrictMath.*;
  */
 public abstract class AbstractMoveDecision implements Decision {
     protected static final Logger LOG = LoggerFactory.getLogger();
+    private static final double SAFE_POINT_DISTANCE = 50;
+    private final PointQueue safePoints = new PointQueue(10);
+
+    protected Stream<Action> retreat(Wizard self, Game game, GameMap map, int score) {
+        Point retreat = map.home();
+
+        while (safePoints.size() > 0) {
+            retreat = safePoints.tail(0);
+
+            if (Double.compare(self.getDistanceTo(retreat.x, retreat.y), SAFE_POINT_DISTANCE) > 0) {
+                break;
+            }
+
+            safePoints.remove();
+        }
+
+        LOG.logTarget(retreat, map.tick());
+
+        return go(self, retreat, game, score);
+    }
+
 
     protected Stream<Action> turnAndGo(Wizard self, Point checkpoint, Game game, int score) {
         double forwardSpeed = game.getWizardForwardSpeed();

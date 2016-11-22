@@ -33,8 +33,8 @@ public class BattleMoveDecision extends AbstractMoveDecision {
     private static final double SAFE_POINT_DISTANCE = 100;
     private static final double PADDING = 5;
 
+    private final PointQueue safePoints = new PointQueue(10);
     private CollisionDetector cd;
-    private PointQueue safePoints = new PointQueue(10);
 
     @Override
     public Stream<Action> decide(Wizard self, World world, Game game, Move move) {
@@ -96,22 +96,9 @@ public class BattleMoveDecision extends AbstractMoveDecision {
                 .filter(map::isEnemy).filter(e -> e instanceof Building).map(e -> (Building) e).mapToInt(Building::getRemainingActionCooldownTicks).findAny().orElse(-1);
 
         if (enemies > 1 && friends < enemies || towerChargeTime > 0 && towerChargeTime < SAFE_COOL_DOWN * 3) {
-            Point retreat = map.home();
-
-            while (safePoints.size() > 0) {
-                retreat = safePoints.tail(0);
-
-                if (!cd.isNear(retreat.x, retreat.y, SAFE_POINT_DISTANCE / 4, self)) {
-                    break;
-                }
-
-                safePoints.remove();
-            }
-
             LOG.printf("Retreat!!! Tower remain: %d. Enemies around: %d. Friends around: %d%n", towerChargeTime, enemies, friends);
-            LOG.logTarget(retreat, map.tick());
 
-            return goWaitching(self, retreat, enemy, game, HIGH);
+            return retreat(self, game, map, ASAP);
         }
 
         double enemyAngle = enemy.getAngleTo(self);

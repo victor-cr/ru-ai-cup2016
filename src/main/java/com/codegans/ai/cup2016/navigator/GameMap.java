@@ -160,7 +160,7 @@ public class GameMap {
                 new CheckPoint(new Point(200, 3800), LaneType.TOP),
                 new CheckPoint(new Point(200, 2700), LaneType.TOP),
                 new CheckPoint(new Point(200, 1600), LaneType.TOP),
-                new CheckPoint(new Point(400, 400), LaneType.TOP),
+                new CheckPoint(new Point(350, 350), LaneType.TOP),
                 new CheckPoint(new Point(1600, 200), LaneType.TOP),
                 new CheckPoint(new Point(2700, 200), LaneType.TOP),
                 new CheckPoint(new Point(3800, 200), LaneType.TOP),
@@ -174,7 +174,7 @@ public class GameMap {
                 new CheckPoint(new Point(200, 3800), LaneType.BOTTOM),
                 new CheckPoint(new Point(1600, 3800), LaneType.BOTTOM),
                 new CheckPoint(new Point(2700, 3800), LaneType.BOTTOM),
-                new CheckPoint(new Point(3600, 3600), LaneType.BOTTOM),
+                new CheckPoint(new Point(3650, 3650), LaneType.BOTTOM),
                 new CheckPoint(new Point(3800, 2700), LaneType.BOTTOM),
                 new CheckPoint(new Point(3800, 1600), LaneType.BOTTOM),
                 new CheckPoint(new Point(3800, 200), LaneType.BOTTOM)
