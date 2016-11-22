@@ -2,9 +2,7 @@ package com.codegans.ai.cup2016.model;
 
 import model.Unit;
 
-import static java.lang.StrictMath.abs;
-import static java.lang.StrictMath.max;
-import static java.lang.StrictMath.min;
+import static java.lang.StrictMath.*;
 
 /**
  * JavaDoc here
@@ -59,7 +57,14 @@ public final class Point {
     }
 
     public Point reflectTo(Point base) {
-        return new Point(base.x * 2 - x, base.y * 2 - y);
+        double dx = x - base.x;
+        double dy = y - base.y;
+
+        return new Point(base.x - dx, base.y - dy);
+    }
+
+    public Point merge(Point base) {
+        return new Point(base.x - (base.x - x) / 2, base.y - (base.y - y) / 2);
     }
 
     public Point shiftTo(Point other, double gravity) {

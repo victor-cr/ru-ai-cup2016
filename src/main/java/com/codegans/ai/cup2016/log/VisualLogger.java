@@ -1,6 +1,7 @@
 package com.codegans.ai.cup2016.log;
 
 import com.codegans.ai.cup2016.action.Action;
+import com.codegans.ai.cup2016.decision.Decision;
 import com.codegans.ai.cup2016.model.Point;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -9,6 +10,7 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -27,12 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static javafx.scene.paint.Color.BLACK;
-import static javafx.scene.paint.Color.BLUE;
-import static javafx.scene.paint.Color.GRAY;
-import static javafx.scene.paint.Color.GREEN;
-import static javafx.scene.paint.Color.RED;
-import static javafx.scene.paint.Color.ROSYBROWN;
+import static javafx.scene.paint.Color.*;
 
 /**
  * JavaDoc here
@@ -91,7 +88,7 @@ public class VisualLogger implements Logger {
     @Override
     public void logPath(Collection<Point> path, Point nextTarget) {
         Platform.runLater(() -> {
-            Canvas canvas = window.foreground;
+            Canvas canvas = window.background;
 
             GraphicsContext gc = canvas.getGraphicsContext2D();
 
@@ -146,24 +143,53 @@ public class VisualLogger implements Logger {
         });
     }
 
+    @Override
+    public void logTarget(Point target, int tick) {
+        System.out.printf("%s's target: %s%n", trace().getSimpleName(), target);
+
+        if (Double.compare(target.x, 0) >= 0 && Double.compare(target.y, 0) >= 0 && Double.compare(target.x, window.background.getWidth()) < 0 && Double.compare(target.y, window.background.getHeight()) < 0)
+            Platform.runLater(() -> {
+                window.root.getChildren().removeIf(e -> (e instanceof MyCircle) && ((MyCircle) e).tick != tick);
+                window.root.getChildren().add(new MyCircle(target.x, target.y, 10, CYAN, tick));
+            });
+    }
+
+    private static Class<? extends Decision> trace() {
+        String className = Arrays.stream(Thread.currentThread().getStackTrace())
+                .map(StackTraceElement::getClassName)
+                .filter(e -> e.contains("Decision"))
+                .filter(e -> !e.contains("Abstract"))
+                .limit(1).findFirst().orElse(null);
+
+        if (className == null) {
+            throw new IllegalStateException("Huynya");
+        }
+
+        try {
+            return (Class<? extends Decision>) Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     public static final class VisualWindow extends Application {
         private volatile Group root;
-        private volatile Canvas foreground;
+        private volatile Canvas background;
 
         @Override
         public void start(Stage primaryStage) throws Exception {
             root = new Group();
-            foreground = new Canvas(4000, 4000);
+            background = new Canvas(4000, 4000);
 
-            root.getChildren().add(foreground);
+            root.getChildren().add(background);
             root.setScaleX(0.25);
             root.setScaleY(0.25);
-            root.setTranslateX(0 - foreground.getWidth() * (1 - 0.25) / 2);
-            root.setTranslateY(0 - foreground.getHeight() * (1 - 0.25) / 2);
+            root.setTranslateX(0 - background.getWidth() * (1 - 0.25) / 2);
+            root.setTranslateY(0 - background.getHeight() * (1 - 0.25) / 2);
 
-            foreground.getGraphicsContext2D().setStroke(ROSYBROWN);
-            foreground.getGraphicsContext2D().setLineWidth(10);
-            foreground.getGraphicsContext2D().strokeRect(0, 0, foreground.getWidth(), foreground.getHeight());
+            background.getGraphicsContext2D().setStroke(ROSYBROWN);
+            background.getGraphicsContext2D().setLineWidth(10);
+            background.getGraphicsContext2D().strokeRect(0, 0, background.getWidth(), background.getHeight());
 
             primaryStage.setScene(new Scene(root, 1000, 1000, Color.WHITE));
             primaryStage.show();
@@ -171,6 +197,15 @@ public class VisualLogger implements Logger {
             window = this;
 
             BARRIER.await();
+        }
+    }
+
+    private static class MyCircle extends Circle {
+        private final int tick;
+
+        private MyCircle(double centerX, double centerY, double radius, Paint fill, int tick) {
+            super(centerX, centerY, radius, fill);
+            this.tick = tick;
         }
     }
 }

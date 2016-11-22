@@ -1,5 +1,9 @@
 package com.codegans.ai.cup2016.action;
 
+import com.codegans.ai.cup2016.decision.Decision;
+
+import java.util.Arrays;
+
 /**
  * JavaDoc here
  *
@@ -8,9 +12,11 @@ package com.codegans.ai.cup2016.action;
  */
 public abstract class BaseAction implements Action {
     private final int score;
+    private final Class<? extends Decision> decision;
 
     public BaseAction(int score) {
         this.score = score;
+        this.decision = trace();
     }
 
     @Override
@@ -35,6 +41,24 @@ public abstract class BaseAction implements Action {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + '[' + score + ']';
+        return decision.getSimpleName() + ": " + getClass().getSimpleName() + '[' + score + ']';
+    }
+
+    private static Class<? extends Decision> trace() {
+        String className = Arrays.stream(Thread.currentThread().getStackTrace())
+                .map(StackTraceElement::getClassName)
+                .filter(e -> e.contains("Decision"))
+                .filter(e -> !e.contains("Abstract"))
+                .limit(1).findFirst().orElse(null);
+
+        if (className == null) {
+            throw new IllegalStateException("Huynya");
+        }
+
+        try {
+            return (Class<? extends Decision>) Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

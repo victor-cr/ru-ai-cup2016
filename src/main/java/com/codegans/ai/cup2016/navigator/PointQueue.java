@@ -64,6 +64,16 @@ public final class PointQueue {
         return data[(data.length + tail - i) % data.length];
     }
 
+    public void remove() {
+        if (size == 0) {
+            throw new IndexOutOfBoundsException("Empty queue");
+        }
+
+        data[tail] = null;
+        tail = (capacity + tail - 1) % capacity;
+        size--;
+    }
+
     public int size() {
         return size;
     }

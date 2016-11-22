@@ -25,4 +25,6 @@ public interface Logger {
     void logPath(Collection<Point> path, Point target);
 
     void logState(Wizard self, World world, Game game, Move move);
+
+    void logTarget(Point target, int tick);
 }

@@ -1,8 +1,6 @@
 package com.codegans.ai.cup2016.decision;
 
 import com.codegans.ai.cup2016.action.Action;
-import com.codegans.ai.cup2016.log.Logger;
-import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import com.codegans.ai.cup2016.navigator.Navigator;
@@ -26,13 +24,10 @@ import java.util.stream.Stream;
  */
 public class CheckpointMoveDecision extends AbstractMoveDecision {
     private static final double CHECKPOINT_PADDING = 150;
-    private static final Logger LOG = LoggerFactory.getLogger();
 
-    //    private final LaneType random = LaneType.BOTTOM;
     private final LaneType random = LaneType.values()[StrictMath.toIntExact(System.currentTimeMillis() % 3)];
     private final List<Point> checkpoints = new ArrayList<>();
-    private Navigator global;
-    private Navigator local;
+    private Navigator navigator;
     private LaneType current = null;
     private Point target;
 
@@ -45,11 +40,13 @@ public class CheckpointMoveDecision extends AbstractMoveDecision {
             reassess(map, requested);
         }
 
-        target = setupTarget(self);
+        if (target == null || Double.compare(self.getDistanceTo(target.x, target.y), game.getWizardForwardSpeed() * 3) <= 0) {
+            target = setupTarget(self);
+        }
 
-        Point nearest = local.next(target);
+        LOG.logTarget(target, map.tick());
 
-        return turnAndGo(self, nearest, game, LOW);
+        return turnAndGo(self, target, game, LOW);
     }
 
     private void reassess(GameMap map, LaneType requested) {
@@ -62,9 +59,8 @@ public class CheckpointMoveDecision extends AbstractMoveDecision {
 
         LOG.printf("New requested lane: %s%n", current);
 
-        if (global == null || local == null) {
-            global = map.navigator().staticOnly();
-            local = map.navigator().full();
+        if (navigator == null ) {
+            navigator = map.navigator().staticOnly();
         }
     }
 
@@ -77,10 +73,10 @@ public class CheckpointMoveDecision extends AbstractMoveDecision {
             checkpoint = checkpoints.get(0);
         }
 
-        return global.next(checkpoint);
+        return navigator.next(checkpoint);
     }
 
     private boolean isCheckpointTaken(Wizard self, Point checkpoint) {
-        return global.cd().isNear(checkpoint.x, checkpoint.y, CHECKPOINT_PADDING, self);
+        return navigator.cd().isNear(checkpoint.x, checkpoint.y, CHECKPOINT_PADDING, self);
     }
 }

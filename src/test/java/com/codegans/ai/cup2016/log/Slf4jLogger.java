@@ -55,4 +55,9 @@ public class Slf4jLogger implements Logger {
     public void logState(Wizard self, World world, Game game, Move move) {
         printf("%n<%d>-------[%d]@(%.3f,%.3f)%n", world.getTickIndex(), self.getLife(), self.getX(), self.getY());
     }
+
+    @Override
+    public void logTarget(Point target, int tick) {
+        printf("Target: %s%n", target);
+    }
 }

@@ -10,7 +10,6 @@ import com.codegans.ai.cup2016.navigator.PointQueue;
 import model.Wizard;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -37,19 +36,6 @@ public class NavigatorImpl implements Navigator {
     }
 
     @Override
-    public Collection<Point> path(Point target) {
-        if (this.target != null && this.target.equals(target)) {
-            return new ArrayList<>(path);
-        }
-
-        this.target = target;
-
-        recalculate();
-
-        return path;
-    }
-
-    @Override
     public Point next(Point target) {
         Wizard self = selfSupplier.get();
 
@@ -71,6 +57,18 @@ public class NavigatorImpl implements Navigator {
         return collisionDetector;
     }
 
+    private void path(Point target) {
+        if (this.target != null && this.target.equals(target)) {
+            return;
+        }
+
+        this.target = target;
+
+        LOG.logTarget(target, 0);
+
+        recalculate();
+    }
+
     private Point findNext() {
         Wizard self = selfSupplier.get();
         PointQueue history = historySupplier.get();
@@ -82,7 +80,10 @@ public class NavigatorImpl implements Navigator {
             Point a = history.tail(0);
             Point b = history.tail(1);
 
-            if (collisionDetector.contains(a, b, self.getRadius(), point)) {
+            if (a.equals(b)) {
+                recalculate();
+                point = safeGet();
+            } else if (collisionDetector.contains(a, b, self.getRadius(), point)) {
                 index++;
                 point = safeGet();
             }

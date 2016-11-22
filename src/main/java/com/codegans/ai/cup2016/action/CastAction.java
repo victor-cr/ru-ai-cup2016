@@ -75,6 +75,7 @@ public class CastAction extends BaseAction {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public String toString() {
         return String.format("%s[%s]<%.4f>", super.toString(), type, angle);
     }

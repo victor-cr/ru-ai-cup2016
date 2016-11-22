@@ -2,10 +2,11 @@ package com.codegans.ai.cup2016;
 
 import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.decision.BattleMoveDecision;
+import com.codegans.ai.cup2016.decision.CheckpointMoveDecision;
+import com.codegans.ai.cup2016.decision.CollisionMoveDecision;
+import com.codegans.ai.cup2016.decision.Decision;
 import com.codegans.ai.cup2016.decision.MissileAttackDecision;
 import com.codegans.ai.cup2016.decision.StaffAttackDecision;
-import com.codegans.ai.cup2016.decision.Decision;
-import com.codegans.ai.cup2016.decision.CheckpointMoveDecision;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.navigator.GameMap;
@@ -17,7 +18,7 @@ import model.World;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * JavaDoc here
@@ -30,6 +31,7 @@ public class StrategyDelegate {
 
     private final Collection<Decision> decisions = Arrays.asList(
 //            new MoveToSafetyDecision(),
+            new CollisionMoveDecision(),
             new BattleMoveDecision(),
             new CheckpointMoveDecision(),
             new StaffAttackDecision(),
@@ -46,18 +48,28 @@ public class StrategyDelegate {
 //        } catch (InterruptedException e) {
 //        }
 
-        Collection<Action> actions = decisions.stream()
-                .flatMap(e -> e.decide(self, world, game, move))
+        Map<Class, Action> actions = new HashMap<>();
+
+        decisions.stream()
+                .flatMap(e -> {
+                    long time = System.currentTimeMillis();
+
+                    try {
+                        return e.decide(self, world, game, move);
+                    } finally {
+                        LOG.printf("Decision: %s [%d ms]%n", e.getClass().getSimpleName(), System.currentTimeMillis() - time);
+                    }
+                })
                 .sorted()
-                .collect(Collectors.toMap(Action::getClass, e -> e, (l, r) -> l, HashMap::new))
-                .values();
+                .forEach(e -> actions.putIfAbsent(e.getClass(), e));
 
         LOG.printf(">====START=ACTIONS====%n");
 
-        actions.stream()
-                .sorted()
-                .peek(LOG::action)
-                .forEach(e -> e.apply(move));
+        for (Action action : actions.values()) {
+            LOG.action(action);
+
+            action.apply(move);
+        }
 
         LOG.printf(">====FINISH=ACTIONS====%n");
     }

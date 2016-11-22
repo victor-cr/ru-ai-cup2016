@@ -7,6 +7,7 @@ import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.impl.CollisionDetectorImpl;
 import com.codegans.ai.cup2016.navigator.impl.NavigatorImpl;
 import model.Building;
+import model.BuildingType;
 import model.Faction;
 import model.LaneType;
 import model.LivingUnit;
@@ -18,7 +19,12 @@ import model.World;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import static java.util.Arrays.stream;
 
 /**
  * JavaDoc here
@@ -42,7 +48,6 @@ public class GameMap {
     private final PointQueue history = new PointQueue(HISTORY_SIZE);
     private final NavigatorFactory navigatorFactory;
     private final CollisionDetectorFactory collisionDetectorFactory;
-    private volatile World world;
     private volatile Wizard self;
     private volatile int version = -1;
     private volatile boolean resurrected = false;
@@ -132,8 +137,22 @@ public class GameMap {
         return unit.getFaction() == Faction.NEUTRAL || unit.getFaction() == Faction.OTHER;
     }
 
+    public boolean isStuck() {
+        Point tail = history.tail(0);
+
+        return IntStream.range(0, HISTORY_SIZE).allMatch(i -> history.head(i) == tail);
+    }
+
+    public int tick() {
+        return version;
+    }
+
     public CollisionDetectorFactory collisionDetector() {
         return collisionDetectorFactory;
+    }
+
+    public Point home() {
+        return towers().filter(this::isFriend).filter(e -> e.getType() == BuildingType.FACTION_BASE).map(Point::new).findAny().orElse(new Point(0, 0));
     }
 
     public Collection<CheckPoint> checkpoints() {
@@ -141,7 +160,7 @@ public class GameMap {
                 new CheckPoint(new Point(200, 3800), LaneType.TOP),
                 new CheckPoint(new Point(200, 2700), LaneType.TOP),
                 new CheckPoint(new Point(200, 1600), LaneType.TOP),
-                new CheckPoint(new Point(200, 200), LaneType.TOP),
+                new CheckPoint(new Point(400, 400), LaneType.TOP),
                 new CheckPoint(new Point(1600, 200), LaneType.TOP),
                 new CheckPoint(new Point(2700, 200), LaneType.TOP),
                 new CheckPoint(new Point(3800, 200), LaneType.TOP),
@@ -155,7 +174,7 @@ public class GameMap {
                 new CheckPoint(new Point(200, 3800), LaneType.BOTTOM),
                 new CheckPoint(new Point(1600, 3800), LaneType.BOTTOM),
                 new CheckPoint(new Point(2700, 3800), LaneType.BOTTOM),
-                new CheckPoint(new Point(3800, 3800), LaneType.BOTTOM),
+                new CheckPoint(new Point(3600, 3600), LaneType.BOTTOM),
                 new CheckPoint(new Point(3800, 2700), LaneType.BOTTOM),
                 new CheckPoint(new Point(3800, 1600), LaneType.BOTTOM),
                 new CheckPoint(new Point(3800, 200), LaneType.BOTTOM)
@@ -171,7 +190,6 @@ public class GameMap {
             return this;
         }
 
-        this.world = world;
         this.resurrected = world.getTickIndex() - version > 1;
 
         if (resurrected) {
@@ -187,14 +205,25 @@ public class GameMap {
         trees.clear();
         wizards.clear();
         minions.clear();
+
+        stream(world.getWizards()).filter(Wizard::isMe).forEach(e -> self = e);
+
+        stream(world.getTrees()).filter(e -> e.getLife() > 0).forEach(trees::add);
+        stream(world.getMinions()).filter(e -> e.getLife() > 0).forEach(minions::add);
+        stream(world.getWizards()).filter(e -> e.getLife() > 0).filter(e -> !e.isMe()).forEach(wizards::add);
+
+        List<Building> invisible = towers()
+                .filter(e -> minions().filter(this::isFriend).noneMatch(x -> Double.compare(x.getRadius() + e.getVisionRange(), e.getDistanceTo(x)) < 0))
+                .map(e -> new Building(e.getId(), e.getX(), e.getY(), e.getSpeedX(), e.getSpeedY(), e.getAngle(), e.getFaction(), e.getRadius(), e.getLife(), e.getMaxLife(), e.getStatuses(), e.getType(), e.getVisionRange(), e.getAttackRange(), e.getDamage(), e.getCooldownTicks(), 0))
+                .collect(Collectors.toList());
+
+        List<Building> sure = Arrays.stream(world.getBuildings())
+                .filter(e -> e.getLife() > 0)
+                .collect(Collectors.toList());
+
         buildings.clear();
-
-        Arrays.stream(world.getWizards()).filter(Wizard::isMe).forEach(e -> self = e);
-
-        Arrays.stream(world.getTrees()).filter(e -> e.getLife() > 0).forEach(trees::add);
-        Arrays.stream(world.getMinions()).filter(e -> e.getLife() > 0).forEach(minions::add);
-        Arrays.stream(world.getBuildings()).filter(e -> e.getLife() > 0).forEach(buildings::add);
-        Arrays.stream(world.getWizards()).filter(e -> e.getLife() > 0).filter(e -> !e.isMe()).forEach(wizards::add);
+        buildings.addAll(invisible);
+        buildings.addAll(sure);
 
         history.offer(new Point(self));
 

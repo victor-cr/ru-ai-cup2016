@@ -35,4 +35,8 @@ public class NullLogger implements Logger {
     @Override
     public void logState(Wizard self, World world, Game game, Move move) {
     }
+
+    @Override
+    public void logTarget(Point target, int tick) {
+    }
 }
