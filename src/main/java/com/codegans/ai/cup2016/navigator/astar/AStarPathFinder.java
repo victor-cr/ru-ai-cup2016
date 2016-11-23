@@ -33,6 +33,10 @@ public class AStarPathFinder implements PathFinder {
     public Collection<Point> traverse(CollisionDetector cd, Point start, Point finish, double radius, BiConsumer<Point, String> logger) {
         int width = (int) cd.width();
         int height = (int) cd.height();
+
+        start = new Point(StrictMath.floor(start.x / STEP) * STEP, StrictMath.floor(start.y / STEP) * STEP);
+        finish = new Point(StrictMath.floor(finish.x / STEP) * STEP, StrictMath.floor(finish.y / STEP) * STEP);
+
         PriorityQueue<AStarNode> opened = new PriorityQueue<>();
         AStarNode[] closed = new AStarNode[width * height];
         Direction[] directions = Direction.values();
@@ -55,7 +59,7 @@ public class AStarPathFinder implements PathFinder {
 
             AStarNode node = opened.poll();
 
-            if (node.isTarget() || unit != null && cd.isNear(node.x, node.y, radius + emergencyArea, unit)) {
+            if (node.isTarget(radius) || unit != null && cd.isNear(node.x, node.y, radius + emergencyArea, unit)) {
                 return constructPath(cd, node, radius);
             }
 

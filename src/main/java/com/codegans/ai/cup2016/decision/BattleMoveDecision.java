@@ -73,84 +73,76 @@ public class BattleMoveDecision extends AbstractMoveDecision {
     }
 
     private Stream<Action> kill(LivingUnit enemy, Wizard self, GameMap map, Game game, Collection<LivingUnit> units, double castRange) {
-        long enemies = units.stream()
-                .filter(map::isEnemy).filter(e -> e instanceof Minion || e instanceof Wizard).filter(e -> isDanger(game, self, e, SAFE_COOL_DOWN * 10)).count();
+        Collection<LivingUnit> enemies = units.stream()
+                .filter(map::isEnemy).filter(e -> e instanceof Minion || e instanceof Wizard).filter(e -> isDanger(game, self, e, SAFE_COOL_DOWN * 10)).collect(Collectors.toList());
         long friends = units.stream().filter(map::isFriend).filter(e -> Double.compare(abs(self.getAngleTo(e)), PI / 2) <= 0).count();
         long towerChargeTime = units.stream()
                 .filter(map::isEnemy).filter(e -> e instanceof Building).map(e -> (Building) e).mapToInt(Building::getRemainingActionCooldownTicks).findAny().orElse(-1);
 
-        if (enemies > 1 && friends < enemies || towerChargeTime > 0 && towerChargeTime < SAFE_COOL_DOWN * 3) {
-            LOG.printf("Retreat!!! Tower remain: %d. Enemies around: %d. Friends around: %d%n", towerChargeTime, enemies, friends);
+        if (enemies.size() > 1 && friends < enemies.size() || towerChargeTime > 0 && towerChargeTime < SAFE_COOL_DOWN * 3) {
+            LOG.printf("Retreat!!! Tower remain: %d. Enemies around: %d. Friends around: %d%n", towerChargeTime, enemies.size(), friends);
 
-            return retreat(self, game, map, HIGH);
+            return retreat(self, enemy, game, map, HIGH);
         }
-
-        double enemyAngle = enemy.getAngleTo(self);
-        double dangerAngle = game.getStaffSector() / 2;
 
         double distance = self.getDistanceTo(enemy);
 
-        if (!isDanger(game, self, enemy, SAFE_COOL_DOWN)) {
-            double dx = enemy.getX() - self.getX();
-            double delta = self.getCastRange() - distance - PADDING;
+        if (Double.compare(distance, self.getCastRange()) < 0 && enemies.stream().noneMatch(e -> isDanger(game, self, e, SAFE_COOL_DOWN))) {
+            LOG.printf("Stay in safe zone. Kill'em all: (%.3f,%.3f)%n", enemy.getX(), enemy.getY());
 
-            double slope = (enemy.getY() - self.getY()) / dx;
-
-            double x = self.getX() - signum(delta) * sqrt(delta * delta / (1 + slope * slope));
-            double y = slope * x + (self.getY() - slope * self.getX());
-
-            Point shift = new Point(x, y);
-
-            LOG.printf("Keep attack distance: %.3f (%.3f,%.3f)%n", delta, x, y);
-            LOG.logTarget(shift, map.tick());
-
-            return goWaitching(self, shift, enemy, game, HIGH);
+            return goWatching(self, new Point(self), enemy, game, HIGH);
         }
 
-        double safeX = self.getX() + distance * cos(dangerAngle * signum(enemyAngle));
-        double safeY = self.getY() + distance * sin(dangerAngle * signum(enemyAngle));
+        double dx = enemy.getX() - self.getX();
+        double delta = self.getCastRange() - distance - PADDING;
 
-        Point point = new Point(safeX, safeY);
+        double slope = (enemy.getY() - self.getY()) / dx;
 
-        double distanceTurn = self.getDistanceTo(point.x, point.y);
-        double dangerRange = castRange - enemy.getDistanceTo(self);
+        double x = self.getX() - signum(delta) * sqrt(delta * delta / (1 + slope * slope));
+        double y = slope * x + (self.getY() - slope * self.getX());
 
-        if (Double.compare(distanceTurn, dangerRange) > 0) {
-            point = new Point(enemy).reflectTo(new Point(self)).plus(point);
-        }
+        Point shift = new Point(x, y);
 
-        LOG.printf("Avoid danger%n");
-        LOG.logTarget(point, map.tick());
+        LOG.printf("Keep attack distance: %.3f (%.3f,%.3f)%n", delta, x, y);
+        LOG.logTarget(shift, map.tick());
 
-        return goWaitching(self, point, enemy, game, HIGH);
+        return goWatching(self, shift, enemy, game, HIGH);
     }
 
     private boolean isDanger(Game game, Wizard self, LivingUnit unit, int safeCoolDown) {
         int coolDown;
         double attackRange;
+        double dangerAngle;
 
         if (unit instanceof Minion) {
             Minion enemy = (Minion) unit;
 
             coolDown = enemy.getRemainingActionCooldownTicks();
-            attackRange = enemy.getType() == MinionType.ORC_WOODCUTTER ? game.getOrcWoodcutterAttackRange() : game.getFetishBlowdartAttackRange();
+
+            if (enemy.getType() == MinionType.ORC_WOODCUTTER) {
+                attackRange = game.getOrcWoodcutterAttackRange();
+                dangerAngle = game.getOrcWoodcutterAttackSector() / 2;
+            } else {
+                attackRange = game.getFetishBlowdartAttackRange();
+                dangerAngle = game.getFetishBlowdartAttackSector() / 2;
+            }
         } else if (unit instanceof Building) {
             Building enemy = (Building) unit;
 
             coolDown = enemy.getRemainingActionCooldownTicks();
             attackRange = enemy.getAttackRange();
+            dangerAngle = PI;
         } else {
             Wizard enemy = (Wizard) unit;
 
             coolDown = max(enemy.getRemainingActionCooldownTicks(), enemy.getRemainingCooldownTicksByAction()[ActionType.MAGIC_MISSILE.ordinal()]);
             attackRange = enemy.getCastRange();
+            dangerAngle = game.getStaffSector() / 2;
         }
 
         double enemyAngle = unit.getAngleTo(self);
-        double dangerAngle = game.getStaffSector() / 2;
         double distance = self.getDistanceTo(unit);
 
         return Double.compare(abs(enemyAngle), dangerAngle) < 0 && coolDown <= safeCoolDown && Double.compare(distance, attackRange + PADDING) <= 0;
-
     }
 }

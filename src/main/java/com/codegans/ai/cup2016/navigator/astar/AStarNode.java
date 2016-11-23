@@ -2,10 +2,7 @@ package com.codegans.ai.cup2016.navigator.astar;
 
 import com.codegans.ai.cup2016.model.Point;
 
-import static java.lang.StrictMath.abs;
-import static java.lang.StrictMath.hypot;
-import static java.lang.StrictMath.min;
-import static java.lang.StrictMath.sqrt;
+import static java.lang.StrictMath.*;
 
 /**
  * JavaDoc here
@@ -61,8 +58,8 @@ public abstract class AStarNode implements Comparable<AStarNode> {
         traversedCost();
     }
 
-    public boolean isTarget() {
-        return x == targetX && y == targetY;
+    public boolean isTarget(double radius) {
+        return Double.compare((x - targetX) * (x - targetX) + (y - targetY) * (y - targetY), radius * radius) < 0;
     }
 
     public Point toPoint() {

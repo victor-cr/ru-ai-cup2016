@@ -24,8 +24,8 @@ import java.util.stream.Stream;
 public class CheckpointMoveDecision extends AbstractMoveDecision {
     private static final double CHECKPOINT_PADDING = 150;
 
-    private final LaneType random = LaneType.BOTTOM;
-//    private final LaneType random = LaneType.values()[StrictMath.toIntExact(System.currentTimeMillis() % 3)];
+//    private final LaneType random = LaneType.BOTTOM;
+    private final LaneType random = LaneType.values()[StrictMath.toIntExact(System.currentTimeMillis() % 3)];
     private final List<Point> checkpoints = new ArrayList<>();
     private LaneType current = null;
     private Point target;
@@ -38,7 +38,7 @@ public class CheckpointMoveDecision extends AbstractMoveDecision {
             reassess(map, requested);
         }
 
-        if (target == null || Double.compare(self.getDistanceTo(target.x, target.y), game.getWizardForwardSpeed() * 3) <= 0) {
+        if (target == null || Double.compare(self.getDistanceTo(target.x, target.y), game.getWizardForwardSpeed() * 3) <= 0 || isCheckpointTaken(self, checkpoints.get(0))) {
             target = setupTarget(self);
         }
 

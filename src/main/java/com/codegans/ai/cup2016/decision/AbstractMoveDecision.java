@@ -1,9 +1,7 @@
 package com.codegans.ai.cup2016.decision;
 
 import com.codegans.ai.cup2016.action.Action;
-import com.codegans.ai.cup2016.action.SpeedAction;
-import com.codegans.ai.cup2016.action.StrafeAction;
-import com.codegans.ai.cup2016.action.TurnAction;
+import com.codegans.ai.cup2016.action.MoveAction;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
@@ -31,7 +29,7 @@ public abstract class AbstractMoveDecision implements Decision {
     protected static final Logger LOG = LoggerFactory.getLogger();
     private static final double SAFE_POINT_DISTANCE = 50;
 
-    private final PointQueue safePoints = new PointQueue(10);
+    protected final PointQueue safePoints = new PointQueue(10);
     protected Navigator navigator;
     protected CollisionDetector fullCd;
 
@@ -63,7 +61,7 @@ public abstract class AbstractMoveDecision implements Decision {
 
     protected abstract Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, Navigator navigator);
 
-    protected Stream<Action> retreat(Wizard self, Game game, GameMap map, int score) {
+    protected Stream<Action> retreat(Wizard self, LivingUnit enemy, Game game, GameMap map, int score) {
         Point retreat = map.home();
 
         while (safePoints.size() > 0) {
@@ -78,7 +76,11 @@ public abstract class AbstractMoveDecision implements Decision {
 
         LOG.logTarget(retreat, map.tick());
 
-        return go(self, retreat, game, score);
+        if (enemy == null) {
+            return go(self, retreat, game, score);
+        }
+
+        return goWatching(self, retreat, enemy, game, score);
     }
 
 
@@ -91,13 +93,13 @@ public abstract class AbstractMoveDecision implements Decision {
             double angle = requiredTurnAngle;
             double speed = forwardSpeed * (1 - abs(requiredTurnAngle / PI));
 
-            return Stream.of(new TurnAction(score, angle), new SpeedAction(score, speed));
+            return Stream.of(new MoveAction(score, checkpoint, speed, 0, angle));
         }
 
         double angle = StrictMath.signum(requiredTurnAngle) * maxTurnAngle;
         double speed = (Double.compare(abs(requiredTurnAngle), PI / 2) < 0 ? forwardSpeed : -game.getWizardBackwardSpeed()) * requiredTurnAngle / PI;
 
-        return Stream.of(new TurnAction(score, angle), new SpeedAction(score, speed));
+        return Stream.of(new MoveAction(score, checkpoint, speed, 0, angle));
     }
 
     protected Stream<Action> go(Wizard self, Point checkpoint, Game game, int score) {
@@ -107,14 +109,10 @@ public abstract class AbstractMoveDecision implements Decision {
         double dx = cos(angle) * distance;
         double dy = sin(angle) * distance;
 
-        return Stream.of(
-                new TurnAction(score, angle),
-                new SpeedAction(score, dx),
-                new StrafeAction(score, dy)
-        );
+        return Stream.of(new MoveAction(score, checkpoint, dx, dy, angle));
     }
 
-    protected Stream<Action> goWaitching(Wizard self, Point checkpoint, LivingUnit unit, Game game, int score) {
+    protected Stream<Action> goWatching(Wizard self, Point checkpoint, LivingUnit unit, Game game, int score) {
         double unitAngle = self.getAngleTo(unit);
         double checkpointAngle = self.getAngleTo(checkpoint.x, checkpoint.y);
         double checkpointDistance = self.getDistanceTo(checkpoint.x, checkpoint.y);
@@ -124,10 +122,6 @@ public abstract class AbstractMoveDecision implements Decision {
         double dx = cos(angle) * checkpointDistance;
         double dy = sin(angle) * checkpointDistance;
 
-        return Stream.of(
-                new TurnAction(score, unitAngle),
-                new SpeedAction(score, dx),
-                new StrafeAction(score, dy)
-        );
+        return Stream.of(new MoveAction(score, checkpoint, dx, dy, unitAngle));
     }
 }

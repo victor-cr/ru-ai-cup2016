@@ -34,4 +34,8 @@ public class MockWorld extends World {
     public MockWorld add(Tree tree) {
         return new MockWorld(getTickIndex(), getTickCount(), getWidth(), getHeight(), getPlayers(), getWizards(), getMinions(), getProjectiles(), getBonuses(), getBuildings(), Stream.concat(Arrays.stream(getTrees()), Stream.of(tree)).toArray(Tree[]::new));
     }
+
+    public MockWorld add(Building tower) {
+        return new MockWorld(getTickIndex(), getTickCount(), getWidth(), getHeight(), getPlayers(), getWizards(), getMinions(), getProjectiles(), getBonuses(), Stream.concat(Arrays.stream(getBuildings()), Stream.of(tower)).toArray(Building[]::new), getTrees());
+    }
 }

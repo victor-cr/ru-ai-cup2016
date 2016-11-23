@@ -34,7 +34,7 @@ import static model.SkillType.*;
  * @author Victor Polischuk
  * @since 16.11.2016 18:55
  */
-public class GameMap {
+public final class GameMap {
     private static final Object MUTEX = new Object();
     private static final Logger LOG = LoggerFactory.getLogger();
     private static final int HISTORY_SIZE = 10;
@@ -46,7 +46,7 @@ public class GameMap {
             {MAGICAL_DAMAGE_ABSORPTION_PASSIVE_1, MAGICAL_DAMAGE_ABSORPTION_AURA_1, MAGICAL_DAMAGE_ABSORPTION_PASSIVE_2, MAGICAL_DAMAGE_ABSORPTION_AURA_2, SHIELD}
     };
 
-    private static volatile GameMap instance;
+    private static GameMap instance;
 
     private final int[] skills = new int[5];
     private final double width;
@@ -58,9 +58,10 @@ public class GameMap {
     private final PointQueue history = new PointQueue(HISTORY_SIZE);
     private final NavigatorFactory navigatorFactory;
     private final CollisionDetectorFactory collisionDetectorFactory;
-    private volatile Wizard self;
-    private volatile int version = -1;
-    private volatile boolean resurrected = false;
+    private Wizard self;
+    private Point target;
+    private int version = -1;
+    private boolean resurrected = false;
 
     private GameMap(int width, int height) {
         this.width = width;
@@ -154,6 +155,18 @@ public class GameMap {
 
     public double height() {
         return height;
+    }
+
+    public Point target() {
+        return target;
+    }
+
+    public void target(Point point) {
+        this.target = point;
+    }
+
+    public Wizard self() {
+        return self;
     }
 
     public Stream<Tree> trees() {
@@ -264,7 +277,8 @@ public class GameMap {
         stream(world.getWizards()).filter(e -> e.getLife() > 0).filter(e -> !e.isMe()).forEach(wizards::add);
 
         List<Building> invisible = towers()
-                .filter(e -> minions().filter(this::isFriend).noneMatch(x -> Double.compare(x.getRadius() + e.getVisionRange(), e.getDistanceTo(x)) < 0))
+                .filter(e -> minions().filter(this::isFriend).noneMatch(x -> Double.compare(x.getRadius() + e.getVisionRange(), e.getDistanceTo(x)) < 0)
+                        || wizards().filter(this::isFriend).noneMatch(x -> Double.compare(x.getRadius() + e.getVisionRange(), e.getDistanceTo(x)) < 0))
                 .map(e -> new Building(e.getId(), e.getX(), e.getY(), e.getSpeedX(), e.getSpeedY(), e.getAngle(), e.getFaction(), e.getRadius(), e.getLife(), e.getMaxLife(), e.getStatuses(), e.getType(), e.getVisionRange(), e.getAttackRange(), e.getDamage(), e.getCooldownTicks(), 0))
                 .collect(Collectors.toList());
 

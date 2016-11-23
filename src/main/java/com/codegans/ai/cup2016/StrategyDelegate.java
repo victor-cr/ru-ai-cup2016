@@ -1,6 +1,7 @@
 package com.codegans.ai.cup2016;
 
 import com.codegans.ai.cup2016.action.Action;
+import com.codegans.ai.cup2016.action.MoveAction;
 import com.codegans.ai.cup2016.decision.BattleMoveDecision;
 import com.codegans.ai.cup2016.decision.CheckpointMoveDecision;
 import com.codegans.ai.cup2016.decision.CollisionMoveDecision;
@@ -42,7 +43,7 @@ public class StrategyDelegate {
     );
 
     public void move(Wizard self, World world, Game game, Move move) {
-        GameMap.get(world); // update counter
+        GameMap map = GameMap.get(world); // update counter
 
         LOG.logState(self, world, game, move);
 
@@ -70,6 +71,10 @@ public class StrategyDelegate {
 
         for (Action action : actions.values()) {
             LOG.action(action);
+
+            if (action instanceof MoveAction) {
+                map.target(((MoveAction) action).target());
+            }
 
             action.apply(move);
         }

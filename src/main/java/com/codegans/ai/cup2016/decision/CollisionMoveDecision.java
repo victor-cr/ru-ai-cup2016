@@ -9,8 +9,9 @@ import model.Game;
 import model.Wizard;
 import model.World;
 
-import java.util.Random;
 import java.util.stream.Stream;
+
+import static java.lang.StrictMath.*;
 
 /**
  * JavaDoc here
@@ -22,13 +23,10 @@ public class CollisionMoveDecision extends AbstractMoveDecision {
     private static final double EXPECTED_PADDING = 10.0D;
     private static final double COLLISION_PADDING = 1.0D;
 
-    private final Random random = new Random();
-
     private CollisionDetector cd;
 
     @Override
     protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, Navigator navigator) {
-
         if (cd == null) {
             cd = map.collisionDetector().full();
         }
@@ -37,30 +35,47 @@ public class CollisionMoveDecision extends AbstractMoveDecision {
         double y = self.getY();
         double r = self.getRadius();
 
-        Point me = new Point(self);
+        double angle = cd.unitsAt(x, y, r + COLLISION_PADDING)
+                .mapToDouble(self::getAngleTo)
+                .average().orElse(0.0D);
 
-        Point retreat = cd.unitsAt(x, y, r + COLLISION_PADDING)
-                .map(Point::new)
-                .reduce(Point::merge)
-                .map(e -> e.reflectTo(me))
-                .orElse(me);
-
-        if (retreat.equals(me)) {
+        if (Double.compare(angle, 0) == 0) {
             return Stream.empty();
         }
 
-        retreat = normalize(map, retreat);
+        Point target = map.target();
+
+        if (target != null && cd.canPass(new Point(x, y), target, r)) {
+            return Stream.empty();
+        }
+
+        angle = angle - signum(angle) * PI;
+
+        double dx = self.getRadius() * cos(angle);
+        double dy = self.getRadius() * sin(angle);
+
+        Point retreat = normalize(map, new Point(self).plusX(dx).plusY(dy));
 
         LOG.logTarget(retreat, map.tick());
 
-        return go(self, retreat, game, ASAP);
+        return go(self, retreat, game, MEDIUM);
     }
 
     private Point normalize(GameMap map, Point point) {
-        if (Double.compare(point.x, 0) >= 0 && Double.compare(point.y, 0) >= 0 && Double.compare(point.x, cd.width()) < 0 && Double.compare(point.y, cd.height()) < 0) {
-            return point.plusX(random.nextDouble() * EXPECTED_PADDING - EXPECTED_PADDING / 2).plusY(random.nextDouble() * EXPECTED_PADDING - EXPECTED_PADDING / 2);
+        if (Double.compare(point.x, 0) < 0 || Double.compare(point.y, 0) < 0 || Double.compare(point.x, cd.width()) >= 0 || Double.compare(point.y, cd.height()) >= 0) {
+            Point me = new Point(map.self());
+            int i = 0;
+
+            while (i < safePoints.size() && point.equals(me)) {
+                point = safePoints.tail(i);
+                i++;
+            }
+
+            if (i == safePoints.size()) {
+                point = map.home();
+            }
         }
 
-        return navigator.next(map.home());
+        return navigator.next(point);
     }
 }
