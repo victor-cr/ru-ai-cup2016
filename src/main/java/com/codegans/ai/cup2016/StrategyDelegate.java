@@ -4,7 +4,8 @@ import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.action.MoveAction;
 import com.codegans.ai.cup2016.decision.BattleMoveDecision;
 import com.codegans.ai.cup2016.decision.CheckpointMoveDecision;
-import com.codegans.ai.cup2016.decision.CollisionMoveDecision;
+import com.codegans.ai.cup2016.decision.CleanPathMissileAttackDecision;
+import com.codegans.ai.cup2016.decision.CleanPathStaffAttackDecision;
 import com.codegans.ai.cup2016.decision.Decision;
 import com.codegans.ai.cup2016.decision.LevelUpDecision;
 import com.codegans.ai.cup2016.decision.MissileAttackDecision;
@@ -34,16 +35,18 @@ public class StrategyDelegate {
 
     private final Collection<Decision> decisions = Arrays.asList(
             new RetreatMoveDecision(),
-            new CollisionMoveDecision(),
+//            new CollisionMoveDecision(),
             new BattleMoveDecision(),
             new CheckpointMoveDecision(),
             new LevelUpDecision(),
             new StaffAttackDecision(),
-            new MissileAttackDecision()
+            new MissileAttackDecision(),
+            new CleanPathMissileAttackDecision(),
+            new CleanPathStaffAttackDecision()
     );
 
     public void move(Wizard self, World world, Game game, Move move) {
-        GameMap map = GameMap.get(world); // update counter
+        GameMap map = GameMap.get(world, game); // update counter and constants
 
         LOG.logState(self, world, game, move);
 

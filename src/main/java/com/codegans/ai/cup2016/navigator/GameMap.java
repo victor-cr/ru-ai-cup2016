@@ -9,9 +9,11 @@ import com.codegans.ai.cup2016.navigator.impl.NavigatorImpl;
 import model.Building;
 import model.BuildingType;
 import model.Faction;
+import model.Game;
 import model.LaneType;
 import model.LivingUnit;
 import model.Minion;
+import model.Player;
 import model.SkillType;
 import model.Tree;
 import model.Wizard;
@@ -58,6 +60,10 @@ public final class GameMap {
     private final PointQueue history = new PointQueue(HISTORY_SIZE);
     private final NavigatorFactory navigatorFactory;
     private final CollisionDetectorFactory collisionDetectorFactory;
+    private World world;
+    private double maxStandardForwardSpeed;
+    private double maxStandardBackwardSpeed;
+    private double maxStandardStrafeSpeed;
     private Wizard self;
     private Point target;
     private int version = -1;
@@ -75,8 +81,13 @@ public final class GameMap {
 
             @Override
             public CollisionDetector staticOnly() {
-                return new CollisionDetectorImpl(width, height, GameMap.this::trees, GameMap.this::towers);
+                return new CollisionDetectorImpl(width, height, GameMap.this::trees, GameMap.this::towers, GameMap.this::minions, GameMap.this::wizards);
             }
+
+//            @Override
+//            public CollisionDetector staticOnly() {
+//                return new CollisionDetectorImpl(width, height, GameMap.this::trees, GameMap.this::towers);
+//            }
         };
 
         this.navigatorFactory = new NavigatorFactory() {
@@ -92,6 +103,16 @@ public final class GameMap {
         };
     }
 
+    public static GameMap get(World world, Game game) {
+        GameMap map = get(world);
+
+        map.maxStandardForwardSpeed = game.getWizardForwardSpeed();
+        map.maxStandardBackwardSpeed = game.getWizardBackwardSpeed();
+        map.maxStandardStrafeSpeed = game.getWizardStrafeSpeed();
+
+        return map;
+    }
+
     public static GameMap get(World world) {
         GameMap i = instance;
 
@@ -99,6 +120,18 @@ public final class GameMap {
             synchronized (MUTEX) {
                 if (instance == null) {
                     instance = new GameMap((int) world.getWidth(), (int) world.getHeight());
+
+                    try {
+                        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                            LOG.print("###############################\n");
+                            for (Player player : instance.world.getPlayers()) {
+                                LOG.printf("## %19s: %4d ##%n", player.getName(), player.getScore());
+                            }
+                            LOG.print("###############################\n");
+                        }));
+                    } catch (SecurityException e) {
+                        //Ignore. Running on a target platform
+                    }
                 }
 
                 i = instance;
@@ -106,6 +139,14 @@ public final class GameMap {
         }
 
         return i.update(world);
+    }
+
+    public double limitSpeed(double speed) {
+        return limitSpeed(speed, maxStandardForwardSpeed, -maxStandardBackwardSpeed);
+    }
+
+    public double limitStrafe(double speed) {
+        return limitSpeed(speed, maxStandardStrafeSpeed, -maxStandardStrafeSpeed);
     }
 
     public int skillBranch(SkillType skill) {
@@ -254,6 +295,7 @@ public final class GameMap {
             return this;
         }
 
+        this.world = world;
         this.resurrected = world.getTickIndex() - version > 1;
 
         if (resurrected) {
@@ -280,7 +322,7 @@ public final class GameMap {
                 .filter(e -> minions().filter(this::isFriend).noneMatch(x -> Double.compare(x.getRadius() + e.getVisionRange(), e.getDistanceTo(x)) < 0)
                         || wizards().filter(this::isFriend).noneMatch(x -> Double.compare(x.getRadius() + e.getVisionRange(), e.getDistanceTo(x)) < 0))
                 .map(e -> new Building(e.getId(), e.getX(), e.getY(), e.getSpeedX(), e.getSpeedY(), e.getAngle(), e.getFaction(), e.getRadius(), e.getLife(), e.getMaxLife(), e.getStatuses(), e.getType(), e.getVisionRange(), e.getAttackRange(), e.getDamage(), e.getCooldownTicks(), 0))
-                .collect(Collectors.toList());
+                .distinct().collect(Collectors.toList());
 
         List<Building> sure = Arrays.stream(world.getBuildings())
                 .filter(e -> e.getLife() > 0)
@@ -293,5 +335,17 @@ public final class GameMap {
         history.offer(new Point(self));
 
         return this;
+    }
+
+    private static double limitSpeed(double speed, double max, double min) {
+        if (Double.compare(speed, min) < 0) {
+            return min;
+        }
+
+        if (Double.compare(speed, max) > 0) {
+            return max;
+        }
+
+        return speed;
     }
 }

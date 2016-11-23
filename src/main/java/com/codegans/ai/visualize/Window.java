@@ -39,12 +39,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Collection;
 
-import static javafx.scene.paint.Color.BLACK;
-import static javafx.scene.paint.Color.DARKBLUE;
-import static javafx.scene.paint.Color.GRAY;
-import static javafx.scene.paint.Color.GREEN;
-import static javafx.scene.paint.Color.RED;
-import static javafx.scene.paint.Color.ROSYBROWN;
+import static javafx.scene.paint.Color.*;
 
 /**
  * JavaDoc here
@@ -202,13 +197,13 @@ public class Window extends Application {
                 .filter(e -> e instanceof Circle)
                 .map(e -> (Circle) e)
                 .filter(e -> e.getFill().equals(GREEN))
-                .map(e -> new Tree(0, e.getCenterX(), e.getCenterY(), 0, 0, 0, Faction.OTHER, e.getRadius(), 100, 100, new Status[0]))
+                .map(e -> new Tree(0, e.getCenterX(), e.getCenterY(), 0, 0, 0, Faction.OTHER, e.getRadius(), (int) (e.getRadius() - 20 + 6), (int) (e.getRadius() - 20 + 6), new Status[0]))
                 .toArray(Tree[]::new);
         Building[] buildings = nodes.stream()
                 .filter(e -> e instanceof Circle)
                 .map(e -> (Circle) e)
                 .filter(e -> e.getFill().equals(GRAY))
-                .map(e -> new Building(0, e.getCenterX(), e.getCenterY(), 0, 0, 0, Faction.RENEGADES, e.getRadius(), 100, 100, new Status[0], BuildingType.GUARDIAN_TOWER, 100, 100, 100, 1, 1))
+                .map(e -> new Building(0, e.getCenterX(), e.getCenterY(), 0, 0, 0, Faction.RENEGADES, e.getRadius(), e.getRadius() == 50 ? 1000 : 2000, e.getRadius() == 50 ? 1000 : 2000, new Status[0], e.getRadius() == 50 ? BuildingType.GUARDIAN_TOWER : BuildingType.FACTION_BASE, 100, 100, 100, 1, 1))
                 .toArray(Building[]::new);
         Wizard[] wizards = nodes.stream()
                 .filter(e -> e instanceof Circle)
@@ -251,19 +246,6 @@ public class Window extends Application {
                         break;
                 }
             }));
-            Collection<Point> staticOnly = PathFinder.aStar().traverse(factory.staticOnly(), new Point(me), new Point(world.getBuildings()[0]), me.getRadius(), (p, t) -> Platform.runLater(() -> {
-                switch (t) {
-                    case "BorderNode":
-                        gc.getPixelWriter().setColor((int) p.x + 1, (int) p.y, RED);
-                        break;
-                    case "UnitNode":
-                        gc.getPixelWriter().setColor((int) p.x + 1, (int) p.y, GREEN);
-                        break;
-                    default:
-                        gc.getPixelWriter().setColor((int) p.x + 1, (int) p.y, DARKBLUE);
-                        break;
-                }
-            }));
 
             LOG.printf("Completed: %d ms%n", System.currentTimeMillis() - time);
 
@@ -274,13 +256,6 @@ public class Window extends Application {
                         full.stream().mapToDouble(e -> e.x).toArray(),
                         full.stream().mapToDouble(e -> e.y).toArray(),
                         full.size()
-                );
-                gc.setFill(RED);
-                gc.setLineWidth(5);
-                gc.strokePolyline(
-                        staticOnly.stream().mapToDouble(e -> e.x).toArray(),
-                        staticOnly.stream().mapToDouble(e -> e.y).toArray(),
-                        staticOnly.size()
                 );
             });
         });

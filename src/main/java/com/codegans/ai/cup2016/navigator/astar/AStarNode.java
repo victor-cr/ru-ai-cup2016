@@ -11,7 +11,7 @@ import static java.lang.StrictMath.*;
  * @since 17.11.2016 8:30
  */
 public abstract class AStarNode implements Comparable<AStarNode> {
-    protected static final double G_WEIGHT = 1;
+    protected static final double G_WEIGHT = 1.0D;
     protected static final double H_WEIGHT = sqrt(2);
     private static final int SHIFT = 256;
 

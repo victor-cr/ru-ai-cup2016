@@ -13,6 +13,12 @@ import java.util.function.BiConsumer;
  * @since 16.11.2016 17:30
  */
 public interface PathFinder {
+    default Point next(CollisionDetector cd, Point start, Point finish, double radius) {
+        Collection<Point> traverse = traverse(cd, start, finish, radius, null);
+
+        return traverse.stream().skip(1).findFirst().orElse(start);
+    }
+
     default Collection<Point> traverse(CollisionDetector cd, Point start, Point finish, double radius) {
         return traverse(cd, start, finish, radius, null);
     }

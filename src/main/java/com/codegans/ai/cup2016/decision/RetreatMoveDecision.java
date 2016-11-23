@@ -1,13 +1,14 @@
 package com.codegans.ai.cup2016.decision;
 
 import com.codegans.ai.cup2016.action.Action;
-import com.codegans.ai.cup2016.navigator.CollisionDetector;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import com.codegans.ai.cup2016.navigator.Navigator;
 import model.Game;
+import model.LivingUnit;
 import model.Wizard;
 import model.World;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -17,28 +18,30 @@ import java.util.stream.Stream;
  * @since 14.11.2016 21:08
  */
 public class RetreatMoveDecision extends AbstractMoveDecision {
-    private static final int THRESHOLD = 15;
-
-    private CollisionDetector cd;
+    private static final int THRESHOLD_ABSOLUTE = 20;
+    private static final int THRESHOLD_PERCENT = 10;
 
     @Override
     protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, Navigator navigator) {
-        if (self.getLife() > THRESHOLD) {
-            return Stream.empty();
-        }
+        int life = self.getLife();
 
-        if (cd == null) {
-            cd = map.collisionDetector().full();
+        if (life > THRESHOLD_ABSOLUTE && life * 100 / THRESHOLD_PERCENT > self.getMaxLife()) {
+            return Stream.empty();
         }
 
         double x = self.getX();
         double y = self.getY();
         double r = self.getVisionRange() * 2;
 
-        if (cd.unitsAt(x, y, r).anyMatch(map::isEnemy)) {
-            LOG.printf("Retreat!!! The life is in danger: %d%n", self.getLife());
+        Optional<LivingUnit> target = fullCd.unitsAt(x, y, r)
+                .filter(map::isEnemy)
+                .filter(e -> isDanger(game, self, e, 100000))
+                .min((a, b) -> Double.compare(self.getDistanceTo(a), self.getDistanceTo(b)));
 
-            return retreat(self, null, game, map, ASAP);
+        if (target.isPresent()) {
+            LOG.printf("Retreat!!! The life is in danger: %d%n", life);
+
+            return retreat(self, target.get(), game, map, ASAP);
         }
 
         return Stream.empty();

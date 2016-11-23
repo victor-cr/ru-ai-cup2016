@@ -1,5 +1,6 @@
 package com.codegans.ai.cup2016.navigator.astar;
 
+import model.Faction;
 import model.LivingUnit;
 
 import java.util.ArrayList;
@@ -12,8 +13,9 @@ import java.util.Collection;
  * @since 17.11.2016 8:30
  */
 public class UnitNode extends AStarNode {
-    private static final int HIT_WEIGHT = 10;
-    private static final double LIFE_WEIGHT = G_WEIGHT + HIT_WEIGHT;
+    private static final int HIT_WEIGHT = 12;
+    private static final double LIFE_WEIGHT = HIT_WEIGHT;
+    private static final double IMPOSSIBLE = 100000;
 
     private final Collection<LivingUnit> units;
 
@@ -33,9 +35,9 @@ public class UnitNode extends AStarNode {
             units.removeAll(node.units);
         }
 
-        double life = units.stream().mapToInt(LivingUnit::getLife).average().orElse(0);
+        boolean treesOnly = units.stream().filter(e -> e.getFaction() != Faction.OTHER).count() == 0;
+        double life = units.stream().mapToInt(LivingUnit::getLife).sum();
 
-
-        return super.distanceFrom(target) + StrictMath.floor(life / HIT_WEIGHT) * LIFE_WEIGHT;
+        return super.distanceFrom(target) + (treesOnly ? StrictMath.floor(life / HIT_WEIGHT) * LIFE_WEIGHT : IMPOSSIBLE);
     }
 }

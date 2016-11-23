@@ -4,7 +4,6 @@ import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import com.codegans.ai.cup2016.navigator.Navigator;
-import model.ActionType;
 import model.Building;
 import model.Game;
 import model.LivingUnit;
@@ -107,42 +106,5 @@ public class BattleMoveDecision extends AbstractMoveDecision {
         LOG.logTarget(shift, map.tick());
 
         return goWatching(self, shift, enemy, game, HIGH);
-    }
-
-    private boolean isDanger(Game game, Wizard self, LivingUnit unit, int safeCoolDown) {
-        int coolDown;
-        double attackRange;
-        double dangerAngle;
-
-        if (unit instanceof Minion) {
-            Minion enemy = (Minion) unit;
-
-            coolDown = enemy.getRemainingActionCooldownTicks();
-
-            if (enemy.getType() == MinionType.ORC_WOODCUTTER) {
-                attackRange = game.getOrcWoodcutterAttackRange();
-                dangerAngle = game.getOrcWoodcutterAttackSector() / 2;
-            } else {
-                attackRange = game.getFetishBlowdartAttackRange();
-                dangerAngle = game.getFetishBlowdartAttackSector() / 2;
-            }
-        } else if (unit instanceof Building) {
-            Building enemy = (Building) unit;
-
-            coolDown = enemy.getRemainingActionCooldownTicks();
-            attackRange = enemy.getAttackRange();
-            dangerAngle = PI;
-        } else {
-            Wizard enemy = (Wizard) unit;
-
-            coolDown = max(enemy.getRemainingActionCooldownTicks(), enemy.getRemainingCooldownTicksByAction()[ActionType.MAGIC_MISSILE.ordinal()]);
-            attackRange = enemy.getCastRange();
-            dangerAngle = game.getStaffSector() / 2;
-        }
-
-        double enemyAngle = unit.getAngleTo(self);
-        double distance = self.getDistanceTo(unit);
-
-        return Double.compare(abs(enemyAngle), dangerAngle) < 0 && coolDown <= safeCoolDown && Double.compare(distance, attackRange + PADDING) <= 0;
     }
 }

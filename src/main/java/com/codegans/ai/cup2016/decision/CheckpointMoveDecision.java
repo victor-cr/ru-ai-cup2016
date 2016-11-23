@@ -38,11 +38,7 @@ public class CheckpointMoveDecision extends AbstractMoveDecision {
             reassess(map, requested);
         }
 
-        if (target == null || Double.compare(self.getDistanceTo(target.x, target.y), game.getWizardForwardSpeed() * 3) <= 0 || isCheckpointTaken(self, checkpoints.get(0))) {
-            target = setupTarget(self);
-        }
-
-        LOG.logTarget(target, map.tick());
+        target = setupTarget(self);
 
         return turnAndGo(self, target, game, LOW);
     }
@@ -66,6 +62,8 @@ public class CheckpointMoveDecision extends AbstractMoveDecision {
 
             checkpoint = checkpoints.get(0);
         }
+
+        LOG.logTarget(checkpoint, map.tick());
 
         return navigator.next(checkpoint);
     }

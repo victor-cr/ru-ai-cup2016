@@ -39,17 +39,18 @@ public class NavigatorImpl implements Navigator {
     public Point next(Point target) {
         Wizard self = selfSupplier.get();
 
-        path(target);
+//        path(target);
 
-        Point next = findNext();
+//        Point next = findNext();
+        Point next = PathFinder.aStar().next(collisionDetector, new Point(self), target, self.getRadius());
 
-        if (cd().canPass(new Point(self), next, self.getRadius())) {
+//        if (cd().canPass(new Point(self), next, self.getRadius())) {
             return next;
-        }
-
-        recalculate();
-
-        return findNext();
+//        }
+//
+//        recalculate();
+//
+//        return findNext();
     }
 
     @Override

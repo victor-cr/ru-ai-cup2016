@@ -34,9 +34,7 @@ public class LevelUpDecision implements Decision {
 
     @Override
     public Stream<Action> decide(Wizard self, World world, Game game, Move move) {
-        int[] values = game.getLevelUpXpValues();
-
-        if (!game.isSkillsEnabled() || values == null || values.length < nextLevel || self.getXp() < Arrays.stream(values).limit(nextLevel).sum()) {
+        if (nextLevel > self.getLevel() || !game.isSkillsEnabled()) {
             return Stream.empty();
         }
 
