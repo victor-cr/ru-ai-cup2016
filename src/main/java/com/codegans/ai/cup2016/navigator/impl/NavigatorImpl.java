@@ -3,15 +3,10 @@ package com.codegans.ai.cup2016.navigator.impl;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
-import com.codegans.ai.cup2016.navigator.CollisionDetector;
+import com.codegans.ai.cup2016.navigator.GameMap;
 import com.codegans.ai.cup2016.navigator.Navigator;
 import com.codegans.ai.cup2016.navigator.PathFinder;
-import com.codegans.ai.cup2016.navigator.PointQueue;
 import model.Wizard;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * JavaDoc here
@@ -21,93 +16,26 @@ import java.util.function.Supplier;
  */
 public class NavigatorImpl implements Navigator {
     private static final Logger LOG = LoggerFactory.getLogger();
+    private static final int TICKS = 10;
 
-    private final CollisionDetector collisionDetector;
-    private final Supplier<Wizard> selfSupplier;
-    private final Supplier<PointQueue> historySupplier;
-    private final List<Point> path = new ArrayList<>();
-    private Point target;
-    private int index = 1;
+    private final GameMap map;
+    private Point next;
 
-    public NavigatorImpl(CollisionDetector collisionDetector, Supplier<Wizard> selfSupplier, Supplier<PointQueue> historySupplier) {
-        this.collisionDetector = collisionDetector;
-        this.selfSupplier = selfSupplier;
-        this.historySupplier = historySupplier;
+    public NavigatorImpl(GameMap map) {
+        this.map = map;
     }
 
     @Override
     public Point next(Point target) {
-        Wizard self = selfSupplier.get();
+        int tick = map.tick();
+        Wizard self = map.self();
 
-//        path(target);
+        if (next == null || tick % TICKS == 0) {
+            next = PathFinder.aStar().next(map, new Point(self), target, self.getRadius());
 
-//        Point next = findNext();
-        Point next = PathFinder.aStar().next(collisionDetector, new Point(self), target, self.getRadius());
-
-//        if (cd().canPass(new Point(self), next, self.getRadius())) {
-            return next;
-//        }
-//
-//        recalculate();
-//
-//        return findNext();
-    }
-
-    @Override
-    public CollisionDetector cd() {
-        return collisionDetector;
-    }
-
-    private void path(Point target) {
-        if (this.target != null && this.target.equals(target)) {
-            return;
+            LOG.logTarget(next, tick);
         }
 
-        this.target = target;
-
-        LOG.logTarget(target, 0);
-
-        recalculate();
-    }
-
-    private Point findNext() {
-        Wizard self = selfSupplier.get();
-        PointQueue history = historySupplier.get();
-
-        Point point = safeGet();
-        int size = history.size();
-
-        if (size > 1) {
-            Point a = history.tail(0);
-            Point b = history.tail(1);
-
-            if (a.equals(b)) {
-                recalculate();
-                point = safeGet();
-            } else if (collisionDetector.contains(a, b, self.getRadius(), point)) {
-                index++;
-                point = safeGet();
-            }
-        }
-
-        return point;
-    }
-
-    private Point safeGet() {
-        while (path.size() <= index) {
-            index--;
-        }
-
-        return path.get(index);
-    }
-
-    private void recalculate() {
-        Wizard self = selfSupplier.get();
-
-        path.clear();
-        path.addAll(PathFinder.aStar().traverse(collisionDetector, new Point(self), target, self.getRadius()));
-        index = 1;
-
-        LOG.logPath(path, target);
+        return next;
     }
 }

@@ -10,6 +10,4 @@ import com.codegans.ai.cup2016.model.Point;
  */
 public interface Navigator {
     Point next(Point target);
-
-    CollisionDetector cd();
 }

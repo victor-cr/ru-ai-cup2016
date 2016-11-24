@@ -3,7 +3,6 @@ package com.codegans.ai.cup2016.decision;
 import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.GameMap;
-import com.codegans.ai.cup2016.navigator.Navigator;
 import model.Building;
 import model.Game;
 import model.LivingUnit;
@@ -31,12 +30,12 @@ public class BattleMoveDecision extends AbstractMoveDecision {
     private static final double PADDING = 5;
 
     @Override
-    protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, Navigator navigator) {
+    protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map) {
         double x = self.getX();
         double y = self.getY();
         double r = self.getVisionRange();
 
-        List<LivingUnit> units = fullCd.unitsAt(x, y, r).collect(Collectors.toList());
+        List<LivingUnit> units = map.cd().unitsAt(x, y, r).collect(Collectors.toList());
 
         LivingUnit enemy = units.stream().filter(map::isEnemy).sorted((a, b) -> Integer.compare(a.getLife(), b.getLife())).limit(1).findAny().orElse(null);
 
@@ -89,7 +88,7 @@ public class BattleMoveDecision extends AbstractMoveDecision {
         if (Double.compare(distance, self.getCastRange()) < 0 && enemies.stream().noneMatch(e -> isDanger(game, self, e, SAFE_COOL_DOWN))) {
             LOG.printf("Stay in safe zone. Kill'em all: (%.3f,%.3f)%n", enemy.getX(), enemy.getY());
 
-            return goWatching(self, new Point(self), enemy, game, HIGH);
+            return goWatching(self, new Point(self), enemy, game, map, HIGH);
         }
 
         double dx = enemy.getX() - self.getX();
@@ -105,6 +104,6 @@ public class BattleMoveDecision extends AbstractMoveDecision {
         LOG.printf("Keep attack distance: %.3f (%.3f,%.3f)%n", delta, x, y);
         LOG.logTarget(shift, map.tick());
 
-        return goWatching(self, shift, enemy, game, HIGH);
+        return goWatching(self, shift, enemy, game, map, HIGH);
     }
 }

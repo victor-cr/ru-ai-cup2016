@@ -4,8 +4,10 @@ import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.CollisionDetector;
+import com.codegans.ai.cup2016.navigator.GameMap;
 import com.codegans.ai.cup2016.navigator.PathFinder;
 import model.LivingUnit;
+import model.Wizard;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,9 +32,19 @@ public class AStarPathFinder implements PathFinder {
     private static final int MAX_POINTS = 10000;
 
     @Override
-    public Collection<Point> traverse(CollisionDetector cd, Point start, Point finish, double radius, BiConsumer<Point, String> logger) {
-        int width = ((int) cd.width());
-        int height = ((int) cd.height());
+    public Point next(GameMap map, Point start, Point finish, double radius) {
+        return traverse(map, start, finish, radius, AStarPathFinder::constructNext, null);
+    }
+
+    @Override
+    public Collection<Point> traverse(GameMap map, Point start, Point finish, double radius, BiConsumer<Point, String> logger) {
+        return traverse(map, start, finish, radius, AStarPathFinder::constructPath, logger);
+    }
+
+    private <T> T traverse(GameMap map, Point start, Point finish, double radius, PathBuilder<T> builder, BiConsumer<Point, String> logger) {
+        int width = ((int) map.width());
+        int height = ((int) map.height());
+        CollisionDetector cd = map.cd();
 
         start = new Point(StrictMath.floor(start.x / STEP) * STEP, StrictMath.floor(start.y / STEP) * STEP);
         finish = new Point(StrictMath.floor(finish.x / STEP) * STEP, StrictMath.floor(finish.y / STEP) * STEP);
@@ -45,12 +57,10 @@ public class AStarPathFinder implements PathFinder {
 
         LivingUnit unit = cd.unitAt(finish.x, finish.y);
 
+        int i = 0;
         double emergencyArea = unit == null && cd.unitsAt(finish.x, finish.y, MAX_AREA).count() > 2 ? MAX_AREA : PADDING;
 
         opened.offer(startNode);
-        closed[index(startNode.x, startNode.y, width)] = startNode;
-
-        int i = 0;
 
         while (!opened.isEmpty()) {
             if (++i > MAX_POINTS) {
@@ -61,43 +71,43 @@ public class AStarPathFinder implements PathFinder {
             AStarNode node = opened.poll();
 
             if (node.isTarget(radius) || unit != null && cd.isNear(node.x, node.y, radius + emergencyArea, unit)) {
-                return constructPath(cd, startNode, node, radius);
+                return builder.build(map, startNode, node, radius);
             }
 
             for (Direction direction : directions) {
                 int x = node.x + direction.dx;
                 int y = node.y + direction.dy;
 
-                int index = index(x, y, width);
+                if (x >= 0 && y >= 0 && x < width && y < height) {
+                    int index = index(x, y, width);
 
-                AStarNode prev = closed[index];
+                    AStarNode prev = closed[index(x, y, width)];
 
-                if (x >= 0 && y >= 0 && x < width && y < height && (prev == null || opened.contains(prev))) {
-                    Collection<LivingUnit> units = cd.unitsAt(x, y, radius).collect(Collectors.toList());
-                    AStarNode child;
+                    if (prev == null || opened.contains(prev)) {
+                        Collection<LivingUnit> units = cd.unitsAt(x, y, radius).collect(Collectors.toList());
+                        AStarNode child;
 
-                    if (!units.isEmpty()) {
-                        child = new UnitNode(x, y, node, units);
-/*
-                    } else if (!cd.available(x, y, radius + PADDING)) {
-                        child = new BorderNode(x, y, node);
-*/
-                    } else {
-                        child = new EmptyNode(x, y, node);
-                    }
-
-                    if (prev == null || Double.compare(prev.cost(), child.cost()) > 0) {
-                        if (prev != null) {
-                            opened.remove(prev);
+                        if (!units.isEmpty()) {
+                            child = new UnitNode(x, y, node, units);
+//                        } else if (cd.unitsAt(x, y, radius + PADDING).anyMatch(e -> e.getFaction() != Faction.OTHER)) {
+//                            child = new BorderNode(x, y, node);
+                        } else {
+                            child = new EmptyNode(x, y, node);
                         }
 
-                        closed[index] = child;
+                        if (prev == null || Double.compare(prev.cost(), child.cost()) > 0) {
+                            if (prev != null) {
+                                opened.remove(prev);
+                            }
 
-                        if (logger != null && (prev == null || prev.getClass() != child.getClass())) {
-                            logger.accept(child.toPoint(), child.getClass().getSimpleName());
+                            closed[index] = child;
+
+                            if (logger != null) {
+                                logger.accept(child.toPoint(), child.getClass().getSimpleName());
+                            }
+
+                            opened.add(child);
                         }
-
-                        opened.add(child);
                     }
                 }
             }
@@ -115,20 +125,24 @@ public class AStarPathFinder implements PathFinder {
             }
         }
 
-        return constructPath(cd, startNode, best, radius);
+        return builder.build(map, startNode, best, radius);
     }
 
     private static int index(int x, int y, int width) {
         return (x + y * width / STEP) / STEP;
     }
 
-    private Collection<Point> constructPath(CollisionDetector cd, StartNode start, AStarNode node, double radius) {
+    private static Collection<Point> constructPath(GameMap map, StartNode start, AStarNode node, double radius) {
         List<Point> result = new ArrayList<>();
+        CollisionDetector cd = map.cd();
+        Wizard self = map.self();
 
         Point startPoint = new Point(start.x, start.y);
 
         while (node != start) {
             Point point = new Point(node.x, node.y);
+
+            LOG.logTarget(point, map.tick());
 
             result.add(point);
 
@@ -136,7 +150,13 @@ public class AStarPathFinder implements PathFinder {
                 break;
             }
 
-            node = node.previous();
+            AStarNode prev = node.previous();
+
+            if (Double.compare(self.getDistanceTo(prev.x, prev.y), radius) <= 0) {
+                break;
+            }
+
+            node = prev;
         }
 
         result.add(startPoint);
@@ -144,6 +164,36 @@ public class AStarPathFinder implements PathFinder {
         Collections.reverse(result);
 
         return result;
+    }
+
+    private static Point constructNext(GameMap map, StartNode start, AStarNode node, double radius) {
+        Point startPoint = new Point(start.x, start.y);
+        CollisionDetector cd = map.cd();
+        Wizard self = map.self();
+
+        while (node != start) {
+            Point point = new Point(node.x, node.y);
+
+            LOG.logTarget(point, map.tick());
+
+            if (cd.canPass(point, startPoint, radius + PADDING)) {
+                return point;
+            }
+
+            AStarNode prev = node.previous();
+
+            if (Double.compare(self.getDistanceTo(prev.x, prev.y), radius) <= 0) {
+                return point;
+            }
+
+            node = prev;
+        }
+
+        return startPoint;
+    }
+
+    private interface PathBuilder<T> {
+        T build(GameMap map, StartNode start, AStarNode node, double radius);
     }
 
     private enum Direction {

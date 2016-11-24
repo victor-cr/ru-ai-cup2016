@@ -3,7 +3,6 @@ package com.codegans.ai.visualize;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
-import com.codegans.ai.cup2016.navigator.CollisionDetectorFactory;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import com.codegans.ai.cup2016.navigator.PathFinder;
 import javafx.application.Application;
@@ -231,9 +230,9 @@ public class Window extends Application {
             long time = System.currentTimeMillis();
             LOG.printf("Started...%n");
 
-            CollisionDetectorFactory factory = GameMap.get(world).collisionDetector();
+            GameMap map = GameMap.get(world);
 
-            Collection<Point> full = PathFinder.aStar().traverse(factory.full(), new Point(me), new Point(world.getBuildings()[0]), me.getRadius(), (p, t) -> Platform.runLater(() -> {
+            Collection<Point> full = PathFinder.aStar().traverse(map, new Point(me), new Point(world.getBuildings()[0]), me.getRadius(), (p, t) -> Platform.runLater(() -> {
                 switch (t) {
                     case "BorderNode":
                         gc.getPixelWriter().setColor((int) p.x, (int) p.y, RED);
@@ -257,6 +256,7 @@ public class Window extends Application {
                         full.stream().mapToDouble(e -> e.y).toArray(),
                         full.size()
                 );
+                full.forEach(e -> gc.strokeOval(e.x - 35, e.y - 35, 35 * 2, 35 * 2));
             });
         });
 

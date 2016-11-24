@@ -5,10 +5,7 @@ import com.codegans.ai.cup2016.action.MoveAction;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
-import com.codegans.ai.cup2016.navigator.CollisionDetector;
 import com.codegans.ai.cup2016.navigator.GameMap;
-import com.codegans.ai.cup2016.navigator.Navigator;
-import com.codegans.ai.cup2016.navigator.PointQueue;
 import model.ActionType;
 import model.Building;
 import model.Game;
@@ -31,75 +28,55 @@ import static java.lang.StrictMath.*;
  */
 public abstract class AbstractMoveDecision implements Decision {
     protected static final Logger LOG = LoggerFactory.getLogger();
-    private static final double SAFE_POINT_DISTANCE = 50;
-
-    protected final PointQueue safePoints = new PointQueue(10);
-    protected GameMap map;
-    protected Navigator navigator;
-    protected CollisionDetector fullCd;
 
     @Override
     public Stream<Action> decide(Wizard self, World world, Game game, Move move) {
-        if (map == null) {
-            map = GameMap.get(world);
-        }
+        GameMap map = GameMap.get(world);
 
-        if (navigator == null || fullCd == null) {
-            navigator = map.navigator().full();
-            fullCd = map.collisionDetector().full();
-        }
-
-        double x = self.getX();
-        double y = self.getY();
-        double r = self.getVisionRange();
-
-        boolean safe = fullCd.unitsAt(x, y, r).noneMatch(map::isEnemy);
-
-        if (safe) {
-            Point me = new Point(self);
-
-            if (safePoints.size() == 0 || Double.compare(safePoints.tail(0).distanceTo(me), SAFE_POINT_DISTANCE) > 0) {
-                safePoints.offer(me);
-            }
-        }
-
-        return doActions(self, world, game, map, navigator);
+        return doActions(self, world, game, map);
     }
 
-    protected abstract Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, Navigator navigator);
+    protected abstract Stream<Action> doActions(Wizard self, World world, Game game, GameMap map);
 
     protected Stream<Action> retreat(Wizard self, LivingUnit enemy, Game game, GameMap map, int score) {
         Point retreat = map.home();
 
-        while (safePoints.size() > 0) {
-            retreat = safePoints.tail(0);
-
-            if (Double.compare(self.getDistanceTo(retreat.x, retreat.y), SAFE_POINT_DISTANCE) > 0) {
-                break;
-            }
-
-            safePoints.remove();
-        }
-
         LOG.logTarget(retreat, map.tick());
 
         if (enemy == null) {
-            return go(self, retreat, game, score);
+            return go(self, retreat, game, map, score);
         }
 
-        return goWatching(self, retreat, enemy, game, score);
+        return goWatching(self, retreat, enemy, game, map, score);
     }
 
 
-    protected Stream<Action> turnAndGo(Wizard self, Point checkpoint, Game game, int score) {
+    protected Stream<Action> turnAndGo(Wizard self, Point checkpoint, Game game, GameMap map, int score) {
         double angle = self.getAngleTo(checkpoint.x, checkpoint.y);
-        double speed = game.getWizardForwardSpeed();
+        double distance = self.getDistanceTo(checkpoint.x, checkpoint.y);
 
-        if (Double.compare(abs(angle), PI / 2) > 0) {
-            speed = 0;
+        double dx = cos(angle) * distance;
+        double dy = sin(angle) * distance;
+
+        return Stream.of(new MoveAction(score, map, checkpoint, dx, dy, angle));
+
+/*
+        double maxSpeed = map.limitSpeed(self.getDistanceTo(checkpoint.x, checkpoint.y));
+        double angle = self.getAngleTo(checkpoint.x, checkpoint.y);
+        double speed = 0;
+        double strafe = 0;
+        double speedUp = 1 - pow(abs(angle) / PI * 2, 2);
+
+        if (Double.compare(speedUp, 0) >= 0) {
+            speed = maxSpeed * speedUp;
+        } else if (Double.compare(speedUp, 0) < 0) {
+            speed = maxSpeed * speedUp;
+        } else {
+            strafe = signum(angle) * maxSpeed;
         }
 
-        return Stream.of(new MoveAction(score, checkpoint, speed, 0, angle));
+        return Stream.of(new MoveAction(score, map, checkpoint, speed, strafe, angle));
+*/
 //        double forwardSpeed = game.getWizardForwardSpeed();
 //        double maxTurnAngle = game.getWizardMaxTurnAngle();
 //        double requiredTurnAngle = self.getAngleTo(checkpoint.x, checkpoint.y);
@@ -117,18 +94,17 @@ public abstract class AbstractMoveDecision implements Decision {
 //        return Stream.of(new MoveAction(score, checkpoint, map.limitSpeed(speed), 0, angle));
     }
 
-    protected Stream<Action> go(Wizard self, Point checkpoint, Game game, int score) {
-
+    protected Stream<Action> go(Wizard self, Point checkpoint, Game game, GameMap map, int score) {
         double angle = self.getAngleTo(checkpoint.x, checkpoint.y);
         double distance = self.getDistanceTo(checkpoint.x, checkpoint.y);
 
         double dx = cos(angle) * distance;
         double dy = sin(angle) * distance;
 
-        return Stream.of(new MoveAction(score, checkpoint, map.limitSpeed(dx), map.limitStrafe(dy), angle));
+        return Stream.of(new MoveAction(score, map, checkpoint, dx, dy, angle));
     }
 
-    protected Stream<Action> goWatching(Wizard self, Point checkpoint, LivingUnit unit, Game game, int score) {
+    protected Stream<Action> goWatching(Wizard self, Point checkpoint, LivingUnit unit, Game game, GameMap map, int score) {
         double unitAngle = self.getAngleTo(unit);
         double checkpointAngle = self.getAngleTo(checkpoint.x, checkpoint.y);
         double checkpointDistance = self.getDistanceTo(checkpoint.x, checkpoint.y);
@@ -138,7 +114,7 @@ public abstract class AbstractMoveDecision implements Decision {
         double dx = cos(angle) * checkpointDistance;
         double dy = sin(angle) * checkpointDistance;
 
-        return Stream.of(new MoveAction(score, checkpoint, map.limitSpeed(dx), map.limitStrafe(dy), unitAngle));
+        return Stream.of(new MoveAction(score, map, checkpoint, dx, dy, unitAngle));
     }
 
     protected static boolean isDanger(Game game, Wizard self, LivingUnit unit, int safeCoolDown) {
@@ -177,5 +153,4 @@ public abstract class AbstractMoveDecision implements Decision {
 
         return Double.compare(abs(enemyAngle), dangerAngle) < 0 && coolDown <= safeCoolDown && Double.compare(distance, attackRange + game.getWizardForwardSpeed()) <= 0;
     }
-
 }

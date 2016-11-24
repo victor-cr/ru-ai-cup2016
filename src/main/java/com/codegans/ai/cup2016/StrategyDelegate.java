@@ -6,6 +6,7 @@ import com.codegans.ai.cup2016.decision.BattleMoveDecision;
 import com.codegans.ai.cup2016.decision.CheckpointMoveDecision;
 import com.codegans.ai.cup2016.decision.CleanPathMissileAttackDecision;
 import com.codegans.ai.cup2016.decision.CleanPathStaffAttackDecision;
+import com.codegans.ai.cup2016.decision.CollisionMoveDecision;
 import com.codegans.ai.cup2016.decision.Decision;
 import com.codegans.ai.cup2016.decision.LevelUpDecision;
 import com.codegans.ai.cup2016.decision.MissileAttackDecision;
@@ -35,7 +36,7 @@ public class StrategyDelegate {
 
     private final Collection<Decision> decisions = Arrays.asList(
             new RetreatMoveDecision(),
-//            new CollisionMoveDecision(),
+            new CollisionMoveDecision(),
             new BattleMoveDecision(),
             new CheckpointMoveDecision(),
             new LevelUpDecision(),
@@ -76,7 +77,10 @@ public class StrategyDelegate {
             LOG.action(action);
 
             if (action instanceof MoveAction) {
-                map.target(((MoveAction) action).target());
+                MoveAction moveAction = (MoveAction) action;
+
+                map.target(moveAction.target());
+                map.action(moveAction);
             }
 
             action.apply(move);

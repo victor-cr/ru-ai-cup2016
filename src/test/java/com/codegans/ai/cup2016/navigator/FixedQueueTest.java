@@ -14,10 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author Victor Polischuk
  * @since 20.11.2016 14:43
  */
-class PointQueueTest {
+class FixedQueueTest {
     @Test
     void testOffer_Overflow() {
-        PointQueue queue = new PointQueue(10);
+        FixedQueue<Point> queue = new FixedQueue<>(new Point[10]);
 
         IntStream.range(0, 12).forEach(e -> queue.offer(new Point(e, e)));
 

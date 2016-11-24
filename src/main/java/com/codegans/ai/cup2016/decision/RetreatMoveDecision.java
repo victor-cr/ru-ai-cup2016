@@ -2,7 +2,6 @@ package com.codegans.ai.cup2016.decision;
 
 import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.navigator.GameMap;
-import com.codegans.ai.cup2016.navigator.Navigator;
 import model.Game;
 import model.LivingUnit;
 import model.Wizard;
@@ -22,7 +21,7 @@ public class RetreatMoveDecision extends AbstractMoveDecision {
     private static final int THRESHOLD_PERCENT = 10;
 
     @Override
-    protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, Navigator navigator) {
+    protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map) {
         int life = self.getLife();
 
         if (life > THRESHOLD_ABSOLUTE && life * 100 / THRESHOLD_PERCENT > self.getMaxLife()) {
@@ -33,7 +32,7 @@ public class RetreatMoveDecision extends AbstractMoveDecision {
         double y = self.getY();
         double r = self.getVisionRange() * 2;
 
-        Optional<LivingUnit> target = fullCd.unitsAt(x, y, r)
+        Optional<LivingUnit> target = map.cd().unitsAt(x, y, r)
                 .filter(map::isEnemy)
                 .filter(e -> isDanger(game, self, e, 100000))
                 .min((a, b) -> Double.compare(self.getDistanceTo(a), self.getDistanceTo(b)));

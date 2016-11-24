@@ -1,5 +1,6 @@
 package com.codegans.ai.cup2016.navigator;
 
+import com.codegans.ai.cup2016.action.MoveAction;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.CheckPoint;
@@ -24,7 +25,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
@@ -39,7 +39,6 @@ import static model.SkillType.*;
 public final class GameMap {
     private static final Object MUTEX = new Object();
     private static final Logger LOG = LoggerFactory.getLogger();
-    private static final int HISTORY_SIZE = 10;
     private static final SkillType[][] BRANCHES = {
             {RANGE_BONUS_PASSIVE_1, RANGE_BONUS_AURA_1, RANGE_BONUS_PASSIVE_2, RANGE_BONUS_AURA_2, ADVANCED_MAGIC_MISSILE},
             {MAGICAL_DAMAGE_BONUS_PASSIVE_1, MAGICAL_DAMAGE_BONUS_AURA_1, MAGICAL_DAMAGE_BONUS_PASSIVE_2, MAGICAL_DAMAGE_BONUS_AURA_2, FROST_BOLT},
@@ -57,10 +56,11 @@ public final class GameMap {
     private final Collection<Wizard> wizards = new ArrayList<>();
     private final Collection<Minion> minions = new ArrayList<>();
     private final Collection<Building> buildings = new ArrayList<>();
-    private final PointQueue history = new PointQueue(HISTORY_SIZE);
-    private final NavigatorFactory navigatorFactory;
-    private final CollisionDetectorFactory collisionDetectorFactory;
+    private final Navigator navigator;
+    private final CollisionDetector cd;
+    private final FixedQueue<MoveAction> intentions = new FixedQueue<>(new MoveAction[5]);
     private World world;
+    private double maxStandardTurnAngle;
     private double maxStandardForwardSpeed;
     private double maxStandardBackwardSpeed;
     private double maxStandardStrafeSpeed;
@@ -73,34 +73,8 @@ public final class GameMap {
         this.width = width;
         this.height = height;
 
-        this.collisionDetectorFactory = new CollisionDetectorFactory() {
-            @Override
-            public CollisionDetector full() {
-                return new CollisionDetectorImpl(width, height, GameMap.this::trees, GameMap.this::towers, GameMap.this::minions, GameMap.this::wizards);
-            }
-
-            @Override
-            public CollisionDetector staticOnly() {
-                return new CollisionDetectorImpl(width, height, GameMap.this::trees, GameMap.this::towers, GameMap.this::minions, GameMap.this::wizards);
-            }
-
-//            @Override
-//            public CollisionDetector staticOnly() {
-//                return new CollisionDetectorImpl(width, height, GameMap.this::trees, GameMap.this::towers);
-//            }
-        };
-
-        this.navigatorFactory = new NavigatorFactory() {
-            @Override
-            public Navigator full() {
-                return new NavigatorImpl(collisionDetector().full(), () -> self, () -> history);
-            }
-
-            @Override
-            public Navigator staticOnly() {
-                return new NavigatorImpl(collisionDetector().staticOnly(), () -> self, () -> history);
-            }
-        };
+        this.cd = new CollisionDetectorImpl(width, height, this::trees, this::towers, this::minions, this::wizards);
+        this.navigator = new NavigatorImpl(this);
     }
 
     public static GameMap get(World world, Game game) {
@@ -109,6 +83,7 @@ public final class GameMap {
         map.maxStandardForwardSpeed = game.getWizardForwardSpeed();
         map.maxStandardBackwardSpeed = game.getWizardBackwardSpeed();
         map.maxStandardStrafeSpeed = game.getWizardStrafeSpeed();
+        map.maxStandardTurnAngle = game.getWizardMaxTurnAngle();
 
         return map;
     }
@@ -141,12 +116,24 @@ public final class GameMap {
         return i.update(world);
     }
 
+    public Collection<MoveAction> lastActions() {
+        return new ArrayList<>(Arrays.asList(intentions.toArray()));
+    }
+
+    public void action(MoveAction action) {
+        intentions.offer(new MoveAction(action.score(), this, new Point(self), action.speed(), action.strafe(), action.turn()));
+    }
+
+    public double limitAngle(double angle) {
+        return limit(angle, maxStandardTurnAngle, -maxStandardTurnAngle);
+    }
+
     public double limitSpeed(double speed) {
-        return limitSpeed(speed, maxStandardForwardSpeed, -maxStandardBackwardSpeed);
+        return limit(speed, maxStandardForwardSpeed, -maxStandardBackwardSpeed);
     }
 
     public double limitStrafe(double speed) {
-        return limitSpeed(speed, maxStandardStrafeSpeed, -maxStandardStrafeSpeed);
+        return limit(speed, maxStandardStrafeSpeed, -maxStandardStrafeSpeed);
     }
 
     public int skillBranch(SkillType skill) {
@@ -242,18 +229,12 @@ public final class GameMap {
         return unit.getFaction() == Faction.NEUTRAL || unit.getFaction() == Faction.OTHER;
     }
 
-    public boolean isStuck() {
-        Point tail = history.tail(0);
-
-        return IntStream.range(0, HISTORY_SIZE).allMatch(i -> history.head(i) == tail);
-    }
-
     public int tick() {
         return version;
     }
 
-    public CollisionDetectorFactory collisionDetector() {
-        return collisionDetectorFactory;
+    public CollisionDetector cd() {
+        return cd;
     }
 
     public Point home() {
@@ -286,8 +267,8 @@ public final class GameMap {
         );
     }
 
-    public NavigatorFactory navigator() {
-        return navigatorFactory;
+    public Navigator navigator() {
+        return navigator;
     }
 
     private GameMap update(World world) {
@@ -302,8 +283,6 @@ public final class GameMap {
             LOG.printf("#########################################%n");
             LOG.printf("## We have been dead for a while: %4d ##%n", world.getTickIndex() - version);
             LOG.printf("#########################################%n");
-
-            history.clear();
         }
 
         version = world.getTickIndex();
@@ -332,20 +311,18 @@ public final class GameMap {
         buildings.addAll(invisible);
         buildings.addAll(sure);
 
-        history.offer(new Point(self));
-
         return this;
     }
 
-    private static double limitSpeed(double speed, double max, double min) {
-        if (Double.compare(speed, min) < 0) {
+    private static double limit(double value, double max, double min) {
+        if (Double.compare(value, min) < 0) {
             return min;
         }
 
-        if (Double.compare(speed, max) > 0) {
+        if (Double.compare(value, max) > 0) {
             return max;
         }
 
-        return speed;
+        return value;
     }
 }

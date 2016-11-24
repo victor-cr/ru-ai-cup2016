@@ -1,7 +1,6 @@
 package com.codegans.ai.cup2016.decision;
 
 import com.codegans.ai.cup2016.action.Action;
-import com.codegans.ai.cup2016.navigator.CollisionDetector;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import model.ActionType;
 import model.Game;
@@ -21,7 +20,6 @@ import java.util.stream.Stream;
 public abstract class AbstractActionDecision implements Decision {
     private final ToIntFunction<Game> manaCost;
     private final ActionType type;
-    private CollisionDetector cd;
 
     public AbstractActionDecision(ToIntFunction<Game> manaCost, ActionType type) {
         this.manaCost = manaCost;
@@ -44,12 +42,8 @@ public abstract class AbstractActionDecision implements Decision {
 
         GameMap map = GameMap.get(world);
 
-        if (cd == null) {
-            cd = map.collisionDetector().full();
-        }
-
-        return doActions(self, world, game, map, cd);
+        return doActions(self, world, game, map);
     }
 
-    protected abstract Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, CollisionDetector cd);
+    protected abstract Stream<Action> doActions(Wizard self, World world, Game game, GameMap map);
 }

@@ -1,7 +1,6 @@
 package com.codegans.ai.cup2016.navigator;
 
-import com.codegans.ai.cup2016.model.Point;
-
+import java.lang.reflect.Array;
 import java.util.Arrays;
 
 /**
@@ -10,15 +9,15 @@ import java.util.Arrays;
  * @author Victor Polischuk
  * @since 20.11.2016 14:22
  */
-public final class PointQueue {
-    private final Point[] data;
+public final class FixedQueue<T> {
+    private final T[] data;
     private final int capacity;
     private int tail;
     private int size;
 
-    public PointQueue(int capacity) {
-        this.data = new Point[capacity];
-        this.capacity = capacity;
+    public FixedQueue(T[] array) {
+        this.data = array.clone();
+        this.capacity = array.length;
         this.size = 0;
         this.tail = 0;
     }
@@ -28,17 +27,17 @@ public final class PointQueue {
         Arrays.setAll(data, i -> null);
     }
 
-    public void offer(Point location) {
+    public void offer(T obj) {
         tail = (tail + 1) % capacity;
 
         if (size < capacity) {
             size++;
         }
 
-        data[tail] = location;
+        data[tail] = obj;
     }
 
-    public Point head(int i) {
+    public T head(int i) {
         if (size == 0) {
             throw new IndexOutOfBoundsException("Empty queue cannot be queried");
         }
@@ -51,7 +50,7 @@ public final class PointQueue {
         return data[(capacity + tail - size + 1 + i) % capacity];
     }
 
-    public Point tail(int i) {
+    public T tail(int i) {
         if (size == 0) {
             throw new IndexOutOfBoundsException("Empty queue cannot be queried");
         }
@@ -76,5 +75,16 @@ public final class PointQueue {
 
     public int size() {
         return size;
+    }
+
+    public T[] toArray() {
+        @SuppressWarnings("unchecked")
+        T[] result = (T[]) Array.newInstance(data.getClass().getComponentType(), size);
+
+        for (int i = 0; i < size; i++) {
+            result[i] = tail(i);
+        }
+
+        return result;
     }
 }

@@ -11,6 +11,8 @@ import model.Wizard;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static java.lang.StrictMath.abs;
+
 /**
  * JavaDoc here
  *
@@ -124,6 +126,18 @@ public class CollisionDetectorImpl implements CollisionDetector {
         double dx = x2 - x1;
         double dy = y2 - y1;
 
+        if (dx == 0) {
+            return Double.compare(y3, Double.min(y1, y2) - radius) >= 0
+                    && Double.compare(y3, Double.max(y1, y2) + radius) <= 0
+                    && Double.compare(abs(x1 - x3), radius + r3) <= 0;
+        }
+
+        if (dy == 0) {
+            return Double.compare(x3, Double.min(x1, x2) - radius) >= 0
+                    && Double.compare(x3, Double.max(x1, x2) + radius) <= 0
+                    && Double.compare(abs(y1 - y3), radius + r3) <= 0;
+        }
+
         double a = dy / dx;
         double b = y1 - a * x1;
         double c = -dx / dy;
@@ -146,5 +160,4 @@ public class CollisionDetectorImpl implements CollisionDetector {
     private static double pow2(double a) {
         return a * a;
     }
-
 }

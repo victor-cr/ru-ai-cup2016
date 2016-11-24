@@ -2,7 +2,6 @@ package com.codegans.ai.cup2016.decision;
 
 import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.action.CastAction;
-import com.codegans.ai.cup2016.navigator.CollisionDetector;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import model.ActionType;
 import model.Game;
@@ -25,12 +24,12 @@ public class CleanPathStaffAttackDecision extends AbstractActionDecision {
     }
 
     @Override
-    protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map, CollisionDetector cd) {
+    protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map) {
         double x = self.getX();
         double y = self.getY();
         double r = game.getStaffRange();
 
-        return cd.unitsAt(x, y, r)
+        return map.cd().unitsAt(x, y, r)
                 .filter(map::isNeutral)
                 .filter(e -> Double.compare(abs(self.getAngleTo(e)), game.getStaffSector() / 2) <= 0)
                 .limit(1)

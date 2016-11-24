@@ -41,7 +41,7 @@ public abstract class BaseAction implements Action {
 
     @Override
     public String toString() {
-        return decision.getSimpleName() + ": " + getClass().getSimpleName() + '[' + score + ']';
+        return (decision == null ? "" : decision.getSimpleName() + ": ") + getClass().getSimpleName() + '[' + score + ']';
     }
 
     private static Class<? extends Decision> trace() {
@@ -52,7 +52,7 @@ public abstract class BaseAction implements Action {
                 .limit(1).findFirst().orElse(null);
 
         if (className == null) {
-            throw new IllegalStateException("Huynya");
+            return null;
         }
 
         try {

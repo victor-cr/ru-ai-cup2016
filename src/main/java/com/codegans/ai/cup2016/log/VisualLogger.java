@@ -1,7 +1,6 @@
 package com.codegans.ai.cup2016.log;
 
 import com.codegans.ai.cup2016.action.Action;
-import com.codegans.ai.cup2016.decision.Decision;
 import com.codegans.ai.cup2016.model.Point;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -145,31 +144,21 @@ public class VisualLogger implements Logger {
 
     @Override
     public void logTarget(Point target, int tick) {
-        System.out.printf("%s's target: %s%n", trace().getSimpleName(), target);
+        trace(target);
 
         if (Double.compare(target.x, 0) >= 0 && Double.compare(target.y, 0) >= 0 && Double.compare(target.x, window.background.getWidth()) < 0 && Double.compare(target.y, window.background.getHeight()) < 0)
             Platform.runLater(() -> {
                 window.root.getChildren().removeIf(e -> (e instanceof MyCircle) && ((MyCircle) e).tick != tick);
-                window.root.getChildren().add(new MyCircle(target.x, target.y, 10, CYAN, tick));
+                window.root.getChildren().add(new MyCircle(target.x, target.y, 10, BROWN, tick));
             });
     }
 
-    private static Class<? extends Decision> trace() {
-        String className = Arrays.stream(Thread.currentThread().getStackTrace())
+    private static void trace(Point target) {
+        Arrays.stream(Thread.currentThread().getStackTrace())
                 .map(StackTraceElement::getClassName)
-                .filter(e -> e.contains("Decision"))
+                .filter(e -> e.contains("Decision") || e.contains("Navigator"))
                 .filter(e -> !e.contains("Abstract"))
-                .limit(1).findFirst().orElse(null);
-
-        if (className == null) {
-            throw new IllegalStateException("Huynya");
-        }
-
-        try {
-            return (Class<? extends Decision>) Class.forName(className);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(e);
-        }
+                .limit(1).findFirst().filter(e -> e.contains("Decision")).ifPresent(e -> System.out.printf("%s's target: %s%n", e.substring(33), target));
     }
 
     public static final class VisualWindow extends Application {
