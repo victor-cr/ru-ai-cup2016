@@ -22,6 +22,7 @@ public class RetreatMoveDecision extends AbstractMoveDecision {
 
     @Override
     protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map) {
+        // TODO: fix it
         int life = self.getLife();
 
         if (life > THRESHOLD_ABSOLUTE && life * 100 / THRESHOLD_PERCENT > self.getMaxLife()) {

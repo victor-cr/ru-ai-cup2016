@@ -7,6 +7,7 @@ import model.Game;
 import model.Wizard;
 import model.World;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -16,6 +17,7 @@ import java.util.stream.Stream;
  * @since 14.11.2016 21:08
  */
 public class CollisionMoveDecision extends AbstractMoveDecision {
+    private static final double PADDING = 2.0D;
 
     @Override
     protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map) {
@@ -25,7 +27,12 @@ public class CollisionMoveDecision extends AbstractMoveDecision {
 
         if (stuck) {
             LOG.printf("Stuck%n");
-            //TODO: unstuck
+
+            Optional<Point> target = map.cd().unitsAt(self.getX(), self.getY(), self.getRadius() + PADDING).map(Point::new).map(e -> e.reflectTo(me)).reduce(Point::merge);
+
+            if (target.isPresent()) {
+                return turnAndGo(self, target.get(), game, map, HIGH);
+            }
         }
 
         return Stream.empty();
