@@ -66,6 +66,7 @@ public final class GameMap {
     private double maxStandardStrafeSpeed;
     private Wizard self;
     private Point target;
+    private LaneType lane;
     private int version = -1;
     private boolean resurrected = false;
 
@@ -241,6 +242,14 @@ public final class GameMap {
         return towers().filter(this::isFriend).filter(e -> e.getType() == BuildingType.FACTION_BASE).map(Point::new).findAny().orElse(new Point(0, 0));
     }
 
+    public LaneType lane() {
+        return lane;
+    }
+
+    public void lane(LaneType lane) {
+        this.lane = lane;
+    }
+
     public Collection<CheckPoint> checkpoints() {
         return Arrays.asList(
                 new CheckPoint(new Point(200, 3800), LaneType.TOP),
@@ -265,6 +274,12 @@ public final class GameMap {
                 new CheckPoint(new Point(3800, 1600), LaneType.BOTTOM),
                 new CheckPoint(new Point(3800, 200), LaneType.BOTTOM)
         );
+    }
+
+    public Point nearestTower() {
+        Wizard self = self();
+
+        return towers().filter(this::isFriend).sorted((l, r) -> Double.compare(self.getDistanceTo(l), self.getDistanceTo(r))).map(Point::new).findFirst().orElse(home());
     }
 
     public Navigator navigator() {

@@ -48,6 +48,8 @@ public class CheckpointMoveDecision extends AbstractMoveDecision {
 
         map.checkpoints().stream().filter(e -> e.lane == requested).map(e -> e.checkpoint).forEach(checkpoints::add);
 
+        map.lane(current);
+
         LOG.printf("New requested lane: %s%n", current);
     }
 

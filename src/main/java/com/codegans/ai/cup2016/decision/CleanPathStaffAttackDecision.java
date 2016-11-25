@@ -33,6 +33,6 @@ public class CleanPathStaffAttackDecision extends AbstractActionDecision {
                 .filter(map::isNeutral)
                 .filter(e -> Double.compare(abs(self.getAngleTo(e)), game.getStaffSector() / 2) <= 0)
                 .limit(1)
-                .map(e -> CastAction.staff(LOW));
+                .map(e -> CastAction.staff(MINOR));
     }
 }

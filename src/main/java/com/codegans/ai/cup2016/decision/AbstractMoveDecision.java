@@ -39,7 +39,7 @@ public abstract class AbstractMoveDecision implements Decision {
     protected abstract Stream<Action> doActions(Wizard self, World world, Game game, GameMap map);
 
     protected Stream<Action> retreat(Wizard self, LivingUnit enemy, Game game, GameMap map, int score) {
-        Point retreat = map.home();
+        Point retreat = map.nearestTower();
 
         LOG.logTarget(retreat, map.tick());
 

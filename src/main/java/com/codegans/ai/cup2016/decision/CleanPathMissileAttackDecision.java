@@ -34,6 +34,6 @@ public class CleanPathMissileAttackDecision extends AbstractActionDecision {
                 .filter(e -> Double.compare(abs(self.getAngleTo(e)), game.getStaffSector() / 2) <= 0)
                 .sorted((a, b) -> Integer.compare(a.getLife(), b.getLife()))
                 .limit(1)
-                .map(e -> CastAction.missile(LOW, self.getAngleTo(e), self.getDistanceTo(e), self.getDistanceTo(e) + e.getRadius()));
+                .map(e -> CastAction.missile(MINOR, self.getAngleTo(e), self.getDistanceTo(e), self.getDistanceTo(e) + e.getRadius()));
     }
 }

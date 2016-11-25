@@ -22,7 +22,6 @@ public class RetreatMoveDecision extends AbstractMoveDecision {
 
     @Override
     protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map) {
-        // TODO: fix it
         int life = self.getLife();
 
         if (life > THRESHOLD_ABSOLUTE && life * 100 / THRESHOLD_PERCENT > self.getMaxLife()) {
@@ -35,7 +34,7 @@ public class RetreatMoveDecision extends AbstractMoveDecision {
 
         Optional<LivingUnit> target = map.cd().unitsAt(x, y, r)
                 .filter(map::isEnemy)
-                .filter(e -> isDanger(game, self, e, 100000))
+//                .filter(e -> isDanger(game, self, e, 100000))
                 .min((a, b) -> Double.compare(self.getDistanceTo(a), self.getDistanceTo(b)));
 
         if (target.isPresent()) {

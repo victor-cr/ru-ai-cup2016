@@ -41,7 +41,7 @@ class AStarPathFinderTest {
         Point target = new Point(459.567, 3716.586);
         MockWorld world = new MockWorld(4000, 4000).add(self).add(new MockBuilding(400, 3600, BuildingType.FACTION_BASE, Faction.ACADEMY));
 
-        Collection<Point> expected = new ArrayList<>(Arrays.asList(new Point(512, 3736), new Point(480, 3736)));
+        Collection<Point> expected = new ArrayList<>(Arrays.asList(new Point(512, 3736), new Point(488, 3720)));
         Collection<Point> actual = PathFinder.aStar().traverse(GameMap.get(world), new Point(self), target, self.getRadius());
 
         assertEquals(expected, actual);
@@ -54,7 +54,7 @@ class AStarPathFinderTest {
         Point target = new Point(459.567, 3716.586);
         MockWorld world = new MockWorld(4000, 4000).add(self).add(new MockBuilding(400, 3600, BuildingType.FACTION_BASE, Faction.ACADEMY));
 
-        Point expected = new Point(480, 3736);
+        Point expected = new Point(488, 3720);
         Point actual = PathFinder.aStar().next(GameMap.get(world), new Point(self), target, self.getRadius());
 
         assertEquals(expected, actual);
