@@ -16,6 +16,7 @@ import model.LaneType;
 import model.LivingUnit;
 import model.Minion;
 import model.Player;
+import model.Projectile;
 import model.SkillType;
 import model.Tree;
 import model.Wizard;
@@ -57,6 +58,7 @@ public final class GameMap {
     private final Collection<Wizard> wizards = new ArrayList<>();
     private final Collection<Minion> minions = new ArrayList<>();
     private final Collection<Building> buildings = new ArrayList<>();
+    private final Collection<Projectile> projectiles = new ArrayList<>();
     private final Navigator navigator;
     private final CollisionDetector cd;
     private final FixedQueue<MoveHistory> intentions = new FixedQueue<>(new MoveHistory[5]);
@@ -213,6 +215,10 @@ public final class GameMap {
 
     public Stream<Wizard> wizards() {
         return wizards.stream();
+    }
+
+    public Stream<Projectile> projectiles() {
+        return projectiles.stream();
     }
 
     public boolean isResurrected() {

@@ -47,7 +47,7 @@ public class BattleMoveDecision extends AbstractMoveDecision {
 
     private Stream<Action> kill(LivingUnit enemy, Wizard self, GameMap map, Game game, Collection<LivingUnit> units) {
         Collection<LivingUnit> enemies = units.stream()
-                .filter(map::isEnemy).filter(e -> e instanceof Minion || e instanceof Wizard).filter(e -> isDanger(game, self, e, SAFE_COOL_DOWN * 10)).collect(Collectors.toList());
+                .filter(map::isEnemy).filter(e -> e instanceof Minion || e instanceof Wizard).filter(e -> isDanger(game, self, e, game.getWizardForwardSpeed(), SAFE_COOL_DOWN * 10)).collect(Collectors.toList());
         long friends = units.stream().filter(map::isFriend).filter(e -> Double.compare(abs(self.getAngleTo(e)), PI / 2) <= 0).count();
         long towerChargeTime = units.stream()
                 .filter(map::isEnemy).filter(e -> e instanceof Building).map(e -> (Building) e).mapToInt(Building::getRemainingActionCooldownTicks).findAny().orElse(-1);
@@ -60,29 +60,48 @@ public class BattleMoveDecision extends AbstractMoveDecision {
 
         double distance = self.getDistanceTo(enemy);
 
-        if (Double.compare(distance, self.getCastRange()) < 0 && enemies.stream().noneMatch(e -> isDanger(game, self, e, SAFE_COOL_DOWN))) {
+        if (Double.compare(distance, self.getCastRange()) < 0 && enemies.stream().noneMatch(e -> isDanger(game, self, e, game.getWizardForwardSpeed(), SAFE_COOL_DOWN))) {
             LOG.printf("Stay in safe zone. Kill'em all: (%.3f,%.3f)%n", enemy.getX(), enemy.getY());
 
             return goWatching(self, new Point(self), enemy, game, map, HIGH);
         }
 
-        double dx = enemy.getX() - self.getX();
         double delta = self.getCastRange() - distance - PADDING;
 
-        if (dx == 0) {
-            return goWatching(self, new Point(self).minusY(enemy.getY() - self.getY() + delta), enemy, game, map, HIGH);
-        }
+        Point shift = proportional(new Point(enemy), new Point(self), delta);
+//
+//        double dx = enemy.getX() - self.getX();
+//
+//        if (dx == 0) {
+//            return goWatching(self, new Point(self).minusY(enemy.getY() - self.getY() + delta), enemy, game, map, HIGH);
+//        }
+//
+//        double slope = (enemy.getY() - self.getY()) / dx;
+//
+//        double x = enemy.getX() - signum(delta) * sqrt(delta * delta / (1 + slope * slope));
+//        double y = slope * x - signum(delta) * (enemy.getY() - slope * enemy.getX());
+//
+//        Point shift = new Point(x, y);
 
-        double slope = (enemy.getY() - self.getY()) / dx;
-
-        double x = enemy.getX() - signum(delta) * sqrt(delta * delta / (1 + slope * slope));
-        double y = slope * x - signum(delta) * (enemy.getY() - slope * enemy.getX());
-
-        Point shift = new Point(x, y);
-
-        LOG.printf("Keep attack distance: %.3f (%.3f,%.3f)%n", delta, x, y);
+        LOG.printf("Keep attack distance: %.3f %s%n", delta, shift);
         LOG.logTarget(shift, map.tick());
 
         return goWatching(self, shift, enemy, game, map, HIGH);
+    }
+
+    private static Point proportional(Point from, Point self, double distance) {
+        //TODO: validate
+        double dx = from.x - self.x;
+
+        if (dx == 0) {
+            return self.minusY(from.y - self.y + distance);
+        }
+
+        double slope = (from.y - self.y) / dx;
+
+        double x = from.x - signum(distance) * sqrt(distance * distance / (1 + slope * slope));
+        double y = slope * x - signum(distance) * (from.y - slope * from.x);
+
+        return new Point(x, y);
     }
 }

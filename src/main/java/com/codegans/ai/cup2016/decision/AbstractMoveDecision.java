@@ -41,6 +41,8 @@ public abstract class AbstractMoveDecision implements Decision {
     protected Stream<Action> retreat(Wizard self, LivingUnit enemy, Game game, GameMap map, int score) {
         Point retreat = map.nearestTower();
 
+
+
         LOG.logTarget(retreat, map.tick());
 
         if (enemy == null) {
@@ -107,7 +109,7 @@ public abstract class AbstractMoveDecision implements Decision {
         }));
     }
 
-    protected static boolean isDanger(Game game, Wizard self, LivingUnit unit, int safeCoolDown) {
+    protected static boolean isDanger(Game game, Wizard self, LivingUnit unit, double radius, int safeCoolDown) {
         int coolDown;
         double attackRange;
         double dangerAngle;
@@ -141,6 +143,6 @@ public abstract class AbstractMoveDecision implements Decision {
         double enemyAngle = unit.getAngleTo(self);
         double distance = self.getDistanceTo(unit);
 
-        return Double.compare(abs(enemyAngle), dangerAngle) < 0 && coolDown <= safeCoolDown && Double.compare(distance, attackRange + game.getWizardForwardSpeed()) <= 0;
+        return Double.compare(abs(enemyAngle), dangerAngle) < 0 && coolDown <= safeCoolDown && Double.compare(distance, attackRange + radius) <= 0;
     }
 }

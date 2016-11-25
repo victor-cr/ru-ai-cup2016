@@ -10,6 +10,7 @@ import com.codegans.ai.cup2016.decision.CollisionMoveDecision;
 import com.codegans.ai.cup2016.decision.Decision;
 import com.codegans.ai.cup2016.decision.LevelUpDecision;
 import com.codegans.ai.cup2016.decision.MissileAttackDecision;
+import com.codegans.ai.cup2016.decision.NeoMoveDecision;
 import com.codegans.ai.cup2016.decision.RetreatMoveDecision;
 import com.codegans.ai.cup2016.decision.StaffAttackDecision;
 import com.codegans.ai.cup2016.log.Logger;
@@ -43,7 +44,8 @@ public class StrategyDelegate {
             new StaffAttackDecision(),
             new MissileAttackDecision(),
             new CleanPathMissileAttackDecision(),
-            new CleanPathStaffAttackDecision()
+            new CleanPathStaffAttackDecision(),
+            new NeoMoveDecision()
     );
 
     public void move(Wizard self, World world, Game game, Move move) {

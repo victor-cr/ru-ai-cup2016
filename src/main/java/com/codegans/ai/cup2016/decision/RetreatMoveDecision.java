@@ -34,7 +34,7 @@ public class RetreatMoveDecision extends AbstractMoveDecision {
 
         Optional<LivingUnit> target = map.cd().unitsAt(x, y, r)
                 .filter(map::isEnemy)
-//                .filter(e -> isDanger(game, self, e, 100000))
+                .filter(e -> isDanger(game, self, e, self.getVisionRange(), 100000))
                 .min((a, b) -> Double.compare(self.getDistanceTo(a), self.getDistanceTo(b)));
 
         if (target.isPresent()) {
