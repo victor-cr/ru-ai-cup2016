@@ -74,7 +74,7 @@ public class StrategyDelegate {
         LOG.printf(">====START=ACTIONS====%n");
 
         for (Action action : actions.values()) {
-            LOG.action(action);
+            action.apply(move);
 
             if (action instanceof MoveAction) {
                 MoveAction moveAction = (MoveAction) action;
@@ -83,7 +83,7 @@ public class StrategyDelegate {
                 map.action(moveAction);
             }
 
-            action.apply(move);
+            LOG.action(action);
         }
 
         LOG.printf(">====FINISH=ACTIONS====%n");

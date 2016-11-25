@@ -17,7 +17,7 @@ import java.util.stream.Stream;
  * @since 14.11.2016 21:08
  */
 public class RetreatMoveDecision extends AbstractMoveDecision {
-    private static final int THRESHOLD_ABSOLUTE = 20;
+    private static final int THRESHOLD_ABSOLUTE = 25;
     private static final int THRESHOLD_PERCENT = 10;
 
     @Override

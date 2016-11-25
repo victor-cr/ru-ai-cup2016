@@ -23,8 +23,8 @@ import java.util.stream.Stream;
 public class CheckpointMoveDecision extends AbstractMoveDecision {
     private static final double CHECKPOINT_PADDING = 250;
 
-    private final LaneType random = LaneType.BOTTOM;
-//    private final LaneType random = LaneType.values()[StrictMath.toIntExact(System.currentTimeMillis() % 3)];
+//    private final LaneType random = LaneType.BOTTOM;
+    private final LaneType random = LaneType.values()[StrictMath.toIntExact(System.currentTimeMillis() % 3)];
     private final List<Point> checkpoints = new ArrayList<>();
     private LaneType current = null;
 
@@ -64,7 +64,7 @@ public class CheckpointMoveDecision extends AbstractMoveDecision {
 
         LOG.logTarget(checkpoint, map.tick());
 
-        return map.navigator().next(checkpoint);
+        return checkpoint;
     }
 
     private boolean isCheckpointTaken(Wizard self, Point checkpoint, GameMap map) {

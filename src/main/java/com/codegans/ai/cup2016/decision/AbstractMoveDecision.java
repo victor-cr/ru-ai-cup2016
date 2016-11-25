@@ -50,71 +50,61 @@ public abstract class AbstractMoveDecision implements Decision {
         return goWatching(self, retreat, enemy, game, map, score);
     }
 
-
     protected Stream<Action> turnAndGo(Wizard self, Point checkpoint, Game game, GameMap map, int score) {
-        double angle = self.getAngleTo(checkpoint.x, checkpoint.y);
-        double distance = self.getDistanceTo(checkpoint.x, checkpoint.y);
+        return Stream.of(new MoveAction(score, map, move -> {
+            Point target = map.navigator().next(checkpoint, true);
 
-        double dx = cos(angle) * distance;
-        double dy = sin(angle) * distance;
+            double angle = self.getAngleTo(target.x, target.y);
+            double distance = self.getDistanceTo(target.x, target.y);
 
-        return Stream.of(new MoveAction(score, map, checkpoint, dx, dy, angle));
+            double dx = cos(angle) * distance;
+            double dy = sin(angle) * distance;
 
-/*
-        double maxSpeed = map.limitSpeed(self.getDistanceTo(checkpoint.x, checkpoint.y));
-        double angle = self.getAngleTo(checkpoint.x, checkpoint.y);
-        double speed = 0;
-        double strafe = 0;
-        double speedUp = 1 - pow(abs(angle) / PI * 2, 2);
+            move.setSpeed(dx);
+            move.setStrafeSpeed(dy);
+            move.setTurn(angle);
 
-        if (Double.compare(speedUp, 0) >= 0) {
-            speed = maxSpeed * speedUp;
-        } else if (Double.compare(speedUp, 0) < 0) {
-            speed = maxSpeed * speedUp;
-        } else {
-            strafe = signum(angle) * maxSpeed;
-        }
-
-        return Stream.of(new MoveAction(score, map, checkpoint, speed, strafe, angle));
-*/
-//        double forwardSpeed = game.getWizardForwardSpeed();
-//        double maxTurnAngle = game.getWizardMaxTurnAngle();
-//        double requiredTurnAngle = self.getAngleTo(checkpoint.x, checkpoint.y);
-//
-//        if (Double.compare(maxTurnAngle, abs(requiredTurnAngle)) > 0) {
-//            double angle = requiredTurnAngle;
-//            double speed = forwardSpeed * (1 - abs(requiredTurnAngle / PI));
-//
-//            return Stream.of(new MoveAction(score, checkpoint, map.limitSpeed(speed), 0, angle));
-//        }
-//
-//        double angle = StrictMath.signum(requiredTurnAngle) * maxTurnAngle;
-//        double speed = (Double.compare(abs(requiredTurnAngle), PI / 2) < 0 ? forwardSpeed : -game.getWizardBackwardSpeed()) * requiredTurnAngle / PI;
-//
-//        return Stream.of(new MoveAction(score, checkpoint, map.limitSpeed(speed), 0, angle));
+            return target;
+        }));
     }
 
     protected Stream<Action> go(Wizard self, Point checkpoint, Game game, GameMap map, int score) {
-        double angle = self.getAngleTo(checkpoint.x, checkpoint.y);
-        double distance = self.getDistanceTo(checkpoint.x, checkpoint.y);
+        return Stream.of(new MoveAction(score, map, move -> {
+            Point target = map.navigator().next(checkpoint, false);
 
-        double dx = cos(angle) * distance;
-        double dy = sin(angle) * distance;
+            double angle = self.getAngleTo(target.x, target.y);
+            double distance = self.getDistanceTo(target.x, target.y);
 
-        return Stream.of(new MoveAction(score, map, checkpoint, dx, dy, angle));
+            double dx = cos(angle) * distance;
+            double dy = sin(angle) * distance;
+
+            move.setSpeed(dx);
+            move.setStrafeSpeed(dy);
+            move.setTurn(angle);
+
+            return target;
+        }));
     }
 
     protected Stream<Action> goWatching(Wizard self, Point checkpoint, LivingUnit unit, Game game, GameMap map, int score) {
-        double unitAngle = self.getAngleTo(unit);
-        double checkpointAngle = self.getAngleTo(checkpoint.x, checkpoint.y);
-        double checkpointDistance = self.getDistanceTo(checkpoint.x, checkpoint.y);
+        return Stream.of(new MoveAction(score, map, move -> {
+            Point target = map.navigator().next(checkpoint, false);
 
-        double angle = checkpointAngle - unitAngle;
+            double unitAngle = self.getAngleTo(unit);
+            double checkpointAngle = self.getAngleTo(target.x, target.y);
+            double checkpointDistance = self.getDistanceTo(target.x, target.y);
 
-        double dx = cos(angle) * checkpointDistance;
-        double dy = sin(angle) * checkpointDistance;
+            double angle = checkpointAngle - unitAngle;
 
-        return Stream.of(new MoveAction(score, map, checkpoint, dx, dy, unitAngle));
+            double dx = cos(angle) * checkpointDistance;
+            double dy = sin(angle) * checkpointDistance;
+
+            move.setSpeed(dx);
+            move.setStrafeSpeed(dy);
+            move.setTurn(unitAngle);
+
+            return checkpoint;
+        }));
     }
 
     protected static boolean isDanger(Game game, Wizard self, LivingUnit unit, int safeCoolDown) {

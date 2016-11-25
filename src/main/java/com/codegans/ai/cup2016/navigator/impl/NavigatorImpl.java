@@ -26,12 +26,12 @@ public class NavigatorImpl implements Navigator {
     }
 
     @Override
-    public Point next(Point target) {
+    public Point next(Point target, boolean passThroughTrees) {
         int tick = map.tick();
         Wizard self = map.self();
 
         if (next == null || tick % TICKS == 0) {
-            next = PathFinder.aStar().next(map, new Point(self), target, self.getRadius());
+            next = PathFinder.aStar().next(map, new Point(self), target, self.getRadius(), passThroughTrees);
 
             LOG.logTarget(next, tick);
         }

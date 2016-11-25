@@ -1,5 +1,6 @@
 package com.codegans.ai.cup2016.action;
 
+import com.codegans.ai.cup2016.model.LazyMoveAction;
 import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import model.Move;
@@ -12,18 +13,16 @@ import model.Move;
  */
 public class MoveAction extends BaseAction {
     private final GameMap map;
-    private final Point target;
-    private final double speed;
-    private final double strafe;
-    private final double turn;
+    private final LazyMoveAction lazyAction;
+    private Point target;
+    private double speed;
+    private double strafe;
+    private double turn;
 
-    public MoveAction(int score, GameMap map, Point target, double speed, double strafe, double turn) {
+    public MoveAction(int score, GameMap map, LazyMoveAction lazyAction) {
         super(score);
         this.map = map;
-        this.target = target;
-        this.speed = speed;
-        this.strafe = strafe;
-        this.turn = turn;
+        this.lazyAction = lazyAction;
     }
 
     public Point target() {
@@ -44,6 +43,12 @@ public class MoveAction extends BaseAction {
 
     @Override
     public void apply(Move move) {
+        target = lazyAction.execute(move);
+
+        speed = move.getSpeed();
+        strafe = move.getStrafeSpeed();
+        turn = move.getTurn();
+
         move.setSpeed(map.limitSpeed(speed));
         move.setStrafeSpeed(map.limitStrafe(strafe));
         move.setTurn(map.limitAngle(turn));

@@ -232,7 +232,7 @@ public class Window extends Application {
 
             GameMap map = GameMap.get(world);
 
-            Collection<Point> full = PathFinder.aStar().traverse(map, new Point(me), new Point(world.getBuildings()[0]), me.getRadius(), (p, t) -> Platform.runLater(() -> {
+            Collection<Point> full = PathFinder.aStar().traverse(map, new Point(me), new Point(world.getBuildings()[0]), me.getRadius(), true, (p, t) -> Platform.runLater(() -> {
                 switch (t) {
                     case "BorderNode":
                         gc.getPixelWriter().setColor((int) p.x, (int) p.y, RED);

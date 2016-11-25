@@ -32,16 +32,16 @@ public class AStarPathFinder implements PathFinder {
     private static final int MAX_POINTS = 10000;
 
     @Override
-    public Point next(GameMap map, Point start, Point finish, double radius) {
-        return traverse(map, start, finish, radius, AStarPathFinder::constructNext, null);
+    public Point next(GameMap map, Point start, Point finish, double radius, boolean passThroughTrees) {
+        return traverse(map, start, finish, radius, passThroughTrees, AStarPathFinder::constructNext, null);
     }
 
     @Override
-    public Collection<Point> traverse(GameMap map, Point start, Point finish, double radius, BiConsumer<Point, String> logger) {
-        return traverse(map, start, finish, radius, AStarPathFinder::constructPath, logger);
+    public Collection<Point> traverse(GameMap map, Point start, Point finish, double radius, boolean passThroughTrees, BiConsumer<Point, String> logger) {
+        return traverse(map, start, finish, radius, passThroughTrees, AStarPathFinder::constructPath, logger);
     }
 
-    private <T> T traverse(GameMap map, Point start, Point finish, double radius, PathBuilder<T> builder, BiConsumer<Point, String> logger) {
+    private <T> T traverse(GameMap map, Point start, Point finish, double radius, boolean passThroughTrees, PathBuilder<T> builder, BiConsumer<Point, String> logger) {
         int width = ((int) map.width());
         int height = ((int) map.height());
         CollisionDetector cd = map.cd();
@@ -88,7 +88,7 @@ public class AStarPathFinder implements PathFinder {
                         AStarNode child;
 
                         if (!units.isEmpty()) {
-                            child = new UnitNode(x, y, node, units);
+                            child = new UnitNode(x, y, node, passThroughTrees, units);
 //                        } else if (cd.unitsAt(x, y, radius + PADDING).anyMatch(e -> e.getFaction() != Faction.OTHER)) {
 //                            child = new BorderNode(x, y, node);
                         } else {

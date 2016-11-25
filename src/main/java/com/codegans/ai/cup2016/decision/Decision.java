@@ -15,7 +15,8 @@ import java.util.stream.Stream;
  * @since 14.11.2016 20:27
  */
 public interface Decision {
-    int ASAP = 1;
+    int TOP = 1;
+    int ASAP = TOP * 10;
     int HIGH = ASAP * 10;
     int MEDIUM = HIGH * 10;
     int LOW = MEDIUM * 10;

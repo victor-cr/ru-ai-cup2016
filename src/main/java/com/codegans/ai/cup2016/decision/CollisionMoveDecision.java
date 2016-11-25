@@ -31,7 +31,7 @@ public class CollisionMoveDecision extends AbstractMoveDecision {
             Optional<Point> target = map.cd().unitsAt(self.getX(), self.getY(), self.getRadius() + PADDING).map(Point::new).map(e -> e.reflectTo(me)).reduce(Point::merge);
 
             if (target.isPresent()) {
-                return turnAndGo(self, target.get(), game, map, HIGH);
+                return go(self, target.get(), game, map, TOP);
             }
         }
 

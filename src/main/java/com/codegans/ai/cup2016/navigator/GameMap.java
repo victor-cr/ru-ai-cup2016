@@ -4,6 +4,7 @@ import com.codegans.ai.cup2016.action.MoveAction;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.CheckPoint;
+import com.codegans.ai.cup2016.model.MoveHistory;
 import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.impl.CollisionDetectorImpl;
 import com.codegans.ai.cup2016.navigator.impl.NavigatorImpl;
@@ -58,7 +59,7 @@ public final class GameMap {
     private final Collection<Building> buildings = new ArrayList<>();
     private final Navigator navigator;
     private final CollisionDetector cd;
-    private final FixedQueue<MoveAction> intentions = new FixedQueue<>(new MoveAction[5]);
+    private final FixedQueue<MoveHistory> intentions = new FixedQueue<>(new MoveHistory[5]);
     private World world;
     private double maxStandardTurnAngle;
     private double maxStandardForwardSpeed;
@@ -117,12 +118,12 @@ public final class GameMap {
         return i.update(world);
     }
 
-    public Collection<MoveAction> lastActions() {
+    public Collection<MoveHistory> lastActions() {
         return new ArrayList<>(Arrays.asList(intentions.toArray()));
     }
 
     public void action(MoveAction action) {
-        intentions.offer(new MoveAction(action.score(), this, new Point(self), action.speed(), action.strafe(), action.turn()));
+        intentions.offer(new MoveHistory(new Point(self), action.speed(), action.strafe(), action.turn()));
     }
 
     public double limitAngle(double angle) {
