@@ -9,6 +9,7 @@ import model.Unit;
 import model.Wizard;
 import model.World;
 
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -21,6 +22,10 @@ import java.util.stream.Stream;
  * @since 25/11/2016 18:57
  */
 public class NeoMoveDecision extends AbstractMoveDecision {
+    public NeoMoveDecision(int priority) {
+        super(priority);
+    }
+
     @Override
     protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map) {
         Map<Long, Wizard> wizards = map.wizards().collect(Collectors.toMap(Unit::getId, e -> e));
@@ -28,7 +33,7 @@ public class NeoMoveDecision extends AbstractMoveDecision {
         Optional<Projectile> avoidIt = map.projectiles()
                 .filter(e -> isDanger(self, e))
                 .filter(e -> canAvoid(self, e))
-                .sorted((l,r) -> Integer.compare(wizards.get(l.getOwnerUnitId()).getLevel(), wizards.get(r.getOwnerUnitId()).getLevel()))
+                .sorted(Comparator.comparingInt(e -> wizards.get(e.getOwnerUnitId()).getLevel()))
                 .findFirst();
 
         if (avoidIt.isPresent()) {

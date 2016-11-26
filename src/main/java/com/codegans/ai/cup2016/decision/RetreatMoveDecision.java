@@ -7,6 +7,7 @@ import model.LivingUnit;
 import model.Wizard;
 import model.World;
 
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -17,8 +18,13 @@ import java.util.stream.Stream;
  * @since 14.11.2016 21:08
  */
 public class RetreatMoveDecision extends AbstractMoveDecision {
-    private static final int THRESHOLD_ABSOLUTE = 25;
-    private static final int THRESHOLD_PERCENT = 10;
+    private static final int THRESHOLD_ABSOLUTE = 36;
+    private static final int THRESHOLD_PERCENT = 20;
+    private static final int PADDING = 250;
+
+    public RetreatMoveDecision(int priority) {
+        super(priority);
+    }
 
     @Override
     protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map) {
@@ -30,17 +36,27 @@ public class RetreatMoveDecision extends AbstractMoveDecision {
 
         double x = self.getX();
         double y = self.getY();
-        double r = self.getVisionRange() * 2;
+        double r = self.getVisionRange() + PADDING;
 
         Optional<LivingUnit> target = map.cd().unitsAt(x, y, r)
-                .filter(map::isEnemy)
-                .filter(e -> isDanger(game, self, e, self.getVisionRange(), 100000))
-                .min((a, b) -> Double.compare(self.getDistanceTo(a), self.getDistanceTo(b)));
+                .filter(GameMap::isEnemy)
+                .filter(e -> isDanger(game, self, e, PADDING, 100000))
+                .min(Comparator.comparingDouble(self::getDistanceTo));
 
         if (target.isPresent()) {
-            LOG.printf("Retreat!!! The life is in danger: %d%n", life);
+            LOG.printf("Retreat!!! The life is in immanent danger: %d%n", life);
 
-            return retreat(self, target.get(), game, map, ASAP);
+            return retreat(self, target.get(), game, map, priority);
+        }
+
+        target = map.cd().unitsAt(x, y, r)
+                .filter(GameMap::isEnemy)
+                .min(Comparator.comparingDouble(self::getDistanceTo));
+
+        if (target.isPresent()) {
+            LOG.printf("Retreat!!! The life is in potential danger: %d%n", life);
+
+            return retreat(self, target.get(), game, map, priority);
         }
 
         return Stream.empty();

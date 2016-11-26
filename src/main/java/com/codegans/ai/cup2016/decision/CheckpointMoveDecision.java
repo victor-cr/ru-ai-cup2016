@@ -12,6 +12,7 @@ import model.World;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
@@ -23,14 +24,23 @@ import java.util.stream.Stream;
 public class CheckpointMoveDecision extends AbstractMoveDecision {
     private static final double CHECKPOINT_PADDING = 250;
 
-//    private final LaneType random = LaneType.BOTTOM;
-    private final LaneType random = LaneType.values()[StrictMath.toIntExact(System.currentTimeMillis() % 3)];
     private final List<Point> checkpoints = new ArrayList<>();
+    private final LaneType random;
     private LaneType current = null;
+
+    public CheckpointMoveDecision(int priority) {
+        this(priority, LaneType.values()[StrictMath.toIntExact(System.currentTimeMillis() % 3)]);
+    }
+
+    public CheckpointMoveDecision(int priority, LaneType lane) {
+        super(priority);
+
+        this.random = lane;
+    }
 
     @Override
     protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map) {
-        LaneType requested = Arrays.stream(self.getMessages()).map(Message::getLane).filter(e -> e != null).findAny().orElse(random);
+        LaneType requested = Arrays.stream(self.getMessages()).map(Message::getLane).filter(Objects::nonNull).findAny().orElse(random);
 
         if (map.isResurrected() || current != requested) {
             reassess(map, requested);
@@ -38,7 +48,7 @@ public class CheckpointMoveDecision extends AbstractMoveDecision {
 
         Point target = setupTarget(self, map);
 
-        return turnAndGo(self, target, game, map, LOW);
+        return turnAndGo(self, target, game, map, priority);
     }
 
     private void reassess(GameMap map, LaneType requested) {

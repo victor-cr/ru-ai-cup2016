@@ -2,10 +2,11 @@ package com.codegans.ai.cup2016;
 
 import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.action.MoveAction;
+import com.codegans.ai.cup2016.decision.AvoidMinionWaveMoveDecision;
 import com.codegans.ai.cup2016.decision.BattleMoveDecision;
+import com.codegans.ai.cup2016.decision.BonusHuntingMoveDecision;
+import com.codegans.ai.cup2016.decision.BonusMoveDecision;
 import com.codegans.ai.cup2016.decision.CheckpointMoveDecision;
-import com.codegans.ai.cup2016.decision.CleanPathMissileAttackDecision;
-import com.codegans.ai.cup2016.decision.CleanPathStaffAttackDecision;
 import com.codegans.ai.cup2016.decision.CollisionMoveDecision;
 import com.codegans.ai.cup2016.decision.Decision;
 import com.codegans.ai.cup2016.decision.LevelUpDecision;
@@ -35,41 +36,52 @@ import java.util.Map;
 public class StrategyDelegate {
     private static final Logger LOG = LoggerFactory.getLogger();
 
+    private static final int MOVE_TO_UNBLOCK = 1;
+    private static final int MOVE_TO_SAFETY = 10;
+    private static final int MOVE_TO_AVOID = 10;
+    private static final int MOVE_TO_BONUS = 100;
+    private static final int MOVE_TO_FIGHT = 1000;
+    private static final int MOVE_TO_CHECKPOINT = 10000;
+    private static final int ATTACK_MELEE = 10;
+    private static final int ATTACK_MISSILE = 100;
+    private static final int ATTACK_FROSTBOLT = 1000;
+    private static final int ATTACK_FIREBALL = 1000;
+    private static final int CLEAN_MELEE = 1000;
+    private static final int CLEAN_MISSILE = 10000;
+    private static final int LEVEL_UP = 1;
+
     private final Collection<Decision> decisions = Arrays.asList(
-            new RetreatMoveDecision(),
-            new CollisionMoveDecision(),
-            new BattleMoveDecision(),
-            new CheckpointMoveDecision(),
-            new LevelUpDecision(),
-            new StaffAttackDecision(),
-            new MissileAttackDecision(),
-            new CleanPathMissileAttackDecision(),
-            new CleanPathStaffAttackDecision(),
-            new NeoMoveDecision()
+            new RetreatMoveDecision(MOVE_TO_SAFETY),
+            new CollisionMoveDecision(MOVE_TO_UNBLOCK),
+            new BattleMoveDecision(MOVE_TO_FIGHT),
+            new CheckpointMoveDecision(MOVE_TO_CHECKPOINT),
+            new LevelUpDecision(LEVEL_UP),
+            new StaffAttackDecision(ATTACK_MELEE, GameMap::isEnemy),
+            new StaffAttackDecision(CLEAN_MELEE, GameMap::isNeutral),
+            new MissileAttackDecision(ATTACK_MISSILE, GameMap::isEnemy),
+            new MissileAttackDecision(CLEAN_MISSILE, GameMap::isNeutral),
+            new AvoidMinionWaveMoveDecision(MOVE_TO_AVOID),
+            new NeoMoveDecision(MOVE_TO_AVOID),
+            new BonusHuntingMoveDecision(MOVE_TO_BONUS),
+            new BonusMoveDecision(MOVE_TO_BONUS)
     );
 
     public void move(Wizard self, World world, Game game, Move move) {
+        long time = System.currentTimeMillis();
+
         GameMap map = GameMap.get(world, game); // update counter and constants
 
         LOG.logState(self, world, game, move);
 
 //        try {
-//            Thread.currentThread().sleep(100);
+//            Thread.currentThread().sleep(50);
 //        } catch (InterruptedException e) {
 //        }
 
         Map<Class, Action> actions = new HashMap<>();
 
         decisions.stream()
-                .flatMap(e -> {
-                    long time = System.currentTimeMillis();
-
-                    try {
-                        return e.decide(self, world, game, move);
-                    } finally {
-                        LOG.printf("Decision: %s [%d ms]%n", e.getClass().getSimpleName(), System.currentTimeMillis() - time);
-                    }
-                })
+                .flatMap(e -> e.decide(self, world, game, move))
                 .sorted()
                 .forEach(e -> actions.putIfAbsent(e.getClass(), e));
 
@@ -88,6 +100,6 @@ public class StrategyDelegate {
             LOG.action(action);
         }
 
-        LOG.printf(">====FINISH=ACTIONS====%n");
+        LOG.printf(">====FINISH=ACTIONS====[%4d ms]%n", System.currentTimeMillis() - time);
     }
 }

@@ -2,8 +2,6 @@ package com.codegans.ai.cup2016.decision;
 
 import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.action.MoveAction;
-import com.codegans.ai.cup2016.log.Logger;
-import com.codegans.ai.cup2016.log.LoggerFactory;
 import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import model.ActionType;
@@ -18,7 +16,12 @@ import model.World;
 
 import java.util.stream.Stream;
 
-import static java.lang.StrictMath.*;
+import static java.lang.StrictMath.PI;
+import static java.lang.StrictMath.abs;
+import static java.lang.StrictMath.cos;
+import static java.lang.StrictMath.hypot;
+import static java.lang.StrictMath.max;
+import static java.lang.StrictMath.sin;
 
 /**
  * JavaDoc here
@@ -26,8 +29,12 @@ import static java.lang.StrictMath.*;
  * @author id967092
  * @since 18/11/2016 20:09
  */
-public abstract class AbstractMoveDecision implements Decision {
-    protected static final Logger LOG = LoggerFactory.getLogger();
+public abstract class AbstractMoveDecision extends AbstractDecision {
+    private static final double PADDING = 10.0D;
+
+    public AbstractMoveDecision(int priority) {
+        super(priority);
+    }
 
     @Override
     public Stream<Action> decide(Wizard self, World world, Game game, Move move) {
@@ -39,8 +46,19 @@ public abstract class AbstractMoveDecision implements Decision {
     protected abstract Stream<Action> doActions(Wizard self, World world, Game game, GameMap map);
 
     protected Stream<Action> retreat(Wizard self, LivingUnit enemy, Game game, GameMap map, int score) {
-        Point retreat = map.nearestTower();
+        Point tower = map.nearestTower();
+        Point home = map.home();
+        Point retreat = tower;
 
+        if (!tower.equals(home)) {
+            double dx = home.x - tower.x;
+            double dy = home.y - tower.y;
+
+            double distance = hypot(dx, dy);
+            double ratio = (self.getRadius() + game.getGuardianTowerRadius()) / distance;
+
+            retreat = tower.plusX(dx * ratio).plusY(dy * ratio);
+        }
 
 
         LOG.logTarget(retreat, map.tick());
@@ -111,6 +129,7 @@ public abstract class AbstractMoveDecision implements Decision {
 
     protected static boolean isDanger(Game game, Wizard self, LivingUnit unit, double radius, int safeCoolDown) {
         int coolDown;
+        double turnAngle;
         double attackRange;
         double dangerAngle;
 
@@ -118,9 +137,10 @@ public abstract class AbstractMoveDecision implements Decision {
             Minion enemy = (Minion) unit;
 
             coolDown = enemy.getRemainingActionCooldownTicks();
+            turnAngle = game.getMinionMaxTurnAngle();
 
             if (enemy.getType() == MinionType.ORC_WOODCUTTER) {
-                attackRange = game.getOrcWoodcutterAttackRange();
+                attackRange = game.getOrcWoodcutterAttackRange() + PADDING;
                 dangerAngle = game.getOrcWoodcutterAttackSector() / 2;
             } else {
                 attackRange = game.getFetishBlowdartAttackRange();
@@ -130,12 +150,14 @@ public abstract class AbstractMoveDecision implements Decision {
             Building enemy = (Building) unit;
 
             coolDown = enemy.getRemainingActionCooldownTicks();
+            turnAngle = 0;
             attackRange = enemy.getAttackRange();
             dangerAngle = PI;
         } else {
             Wizard enemy = (Wizard) unit;
 
             coolDown = max(enemy.getRemainingActionCooldownTicks(), enemy.getRemainingCooldownTicksByAction()[ActionType.MAGIC_MISSILE.ordinal()]);
+            turnAngle = game.getWizardMaxTurnAngle();
             attackRange = enemy.getCastRange();
             dangerAngle = game.getStaffSector() / 2;
         }
@@ -143,6 +165,6 @@ public abstract class AbstractMoveDecision implements Decision {
         double enemyAngle = unit.getAngleTo(self);
         double distance = self.getDistanceTo(unit);
 
-        return Double.compare(abs(enemyAngle), dangerAngle) < 0 && coolDown <= safeCoolDown && Double.compare(distance, attackRange + radius) <= 0;
+        return Double.compare(abs(enemyAngle), dangerAngle + turnAngle) < 0 && coolDown <= safeCoolDown && Double.compare(distance, attackRange + radius) <= 0;
     }
 }

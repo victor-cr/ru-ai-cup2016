@@ -2,7 +2,7 @@ package com.codegans.ai.cup2016.model;
 
 import model.Unit;
 
-import static java.lang.StrictMath.*;
+import static java.lang.StrictMath.abs;
 
 /**
  * JavaDoc here
@@ -67,10 +67,21 @@ public final class Point {
         return new Point(base.x - (base.x - x) / 2, base.y - (base.y - y) / 2);
     }
 
-    public Point shiftTo(Point other, double gravity) {
-        double val = (1 + max(min(gravity, 1.0D), -1.0D)) / 2;
+    public Point shiftTo(Point target, double distance) {
+        if (Double.compare(target.x, this.x) == 0) {
+            return plusY(distance);
+        }
 
-        return plusX((other.x - x) * val).plusY((other.y - y) * val);
+        if (Double.compare(target.y, this.y) == 0) {
+            return plusX(distance);
+        }
+
+        double norm = distanceTo(target);
+
+        double dx = (target.x - this.x) / norm;
+        double dy = (target.y - this.y) / norm;
+
+        return minusX(dx * distance).minusY(dy * distance);
     }
 
     public double distanceTo(Point point) {

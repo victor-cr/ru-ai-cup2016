@@ -2,6 +2,7 @@ package com.codegans.ai.cup2016.model;
 
 import org.junit.jupiter.api.Test;
 
+import static java.lang.StrictMath.sqrt;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -52,5 +53,41 @@ class PointTest {
         Point actual = enemy1.merge(enemy2);
 
         assertEquals(expected, actual);
+    }
+
+    @Test
+    void testShiftTo_TheSameX() {
+        Point enemy = new Point(145, 10);
+        Point me = new Point(145, 145);
+
+        assertEquals(new Point(145, 155), me.shiftTo(enemy, 10));
+        assertEquals(new Point(145, 135), me.shiftTo(enemy, -10));
+    }
+
+    @Test
+    void testShiftTo_TheSameY() {
+        Point enemy = new Point(10, 145);
+        Point me = new Point(145, 145);
+
+        assertEquals(new Point(155, 145), me.shiftTo(enemy, 10));
+        assertEquals(new Point(135, 145), me.shiftTo(enemy, -10));
+    }
+
+    @Test
+    void testShiftTo_45degrees() {
+        Point enemy = new Point(10, 10);
+        Point me = new Point(145, 145);
+
+        assertEquals(new Point(145 + 10 / sqrt(2), 145 + 10 / sqrt(2)), me.shiftTo(enemy, 10));
+        assertEquals(new Point(145 - 10 / sqrt(2), 145 - 10 / sqrt(2)), me.shiftTo(enemy, -10));
+    }
+
+    @Test
+    void testShiftTo_Random() {
+        Point enemy = new Point(123, 10);
+        Point me = new Point(145, 321);
+
+        assertEquals(new Point(145.706, 330.975), me.shiftTo(enemy, 10));
+        assertEquals(new Point(144.294, 311.025), me.shiftTo(enemy, -10));
     }
 }

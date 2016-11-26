@@ -16,7 +16,7 @@ import model.Wizard;
  */
 public class NavigatorImpl implements Navigator {
     private static final Logger LOG = LoggerFactory.getLogger();
-    private static final int TICKS = 10;
+    private static final int TICKS = 5;
 
     private final GameMap map;
     private Point next;

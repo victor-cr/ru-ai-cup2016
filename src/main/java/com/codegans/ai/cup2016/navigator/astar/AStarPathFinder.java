@@ -29,7 +29,7 @@ public class AStarPathFinder implements PathFinder {
     private static final int STEP = 8;
     private static final int PADDING = STEP * 2;
     private static final int MAX_AREA = 200;
-    private static final int MAX_POINTS = 10000;
+    private static final int MAX_POINTS = 20000;
 
     @Override
     public Point next(GameMap map, Point start, Point finish, double radius, boolean passThroughTrees) {
@@ -55,6 +55,12 @@ public class AStarPathFinder implements PathFinder {
 
         StartNode startNode = new StartNode(start, finish);
 
+        if (startNode.isTarget(radius)) {
+            AStarNode node = new EmptyNode((int) finish.x, (int) finish.y, startNode);
+
+            return builder.build(map, startNode, node, radius);
+        }
+
         LivingUnit unit = cd.unitAt(finish.x, finish.y);
 
         int i = 0;
@@ -64,7 +70,6 @@ public class AStarPathFinder implements PathFinder {
 
         while (!opened.isEmpty()) {
             if (++i > MAX_POINTS) {
-                LOG.printf("Terminated by timeout%n");
                 break;
             }
 
@@ -170,9 +175,10 @@ public class AStarPathFinder implements PathFinder {
         Point startPoint = new Point(start.x, start.y);
         CollisionDetector cd = map.cd();
         Wizard self = map.self();
+        AStarNode child = node;
 
-        while (node != start) {
-            Point point = new Point(node.x, node.y);
+        while (child != start) {
+            Point point = new Point(child.x, child.y);
 
             LOG.logTarget(point, map.tick());
 
@@ -180,13 +186,13 @@ public class AStarPathFinder implements PathFinder {
                 return point;
             }
 
-            AStarNode prev = node.previous();
+            AStarNode prev = child.previous();
 
             if (Double.compare(self.getDistanceTo(prev.x, prev.y), radius) <= 0) {
                 return point;
             }
 
-            node = prev;
+            child = prev;
         }
 
         return startPoint;

@@ -17,11 +17,13 @@ import java.util.stream.Stream;
  * @author Victor Polischuk
  * @since 20.11.2016 21:40
  */
-public abstract class AbstractActionDecision implements Decision {
+public abstract class AbstractActionDecision extends AbstractDecision {
     private final ToIntFunction<Game> manaCost;
-    private final ActionType type;
+    protected final ActionType type;
 
-    public AbstractActionDecision(ToIntFunction<Game> manaCost, ActionType type) {
+    public AbstractActionDecision(int priority, ToIntFunction<Game> manaCost, ActionType type) {
+        super(priority);
+
         this.manaCost = manaCost;
         this.type = type;
     }

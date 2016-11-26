@@ -5,9 +5,12 @@ import com.codegans.ai.cup2016.action.CastAction;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import model.ActionType;
 import model.Game;
+import model.LivingUnit;
 import model.Wizard;
 import model.World;
 
+import java.util.Comparator;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static java.lang.StrictMath.abs;
@@ -19,8 +22,12 @@ import static java.lang.StrictMath.abs;
  * @since 14.11.2016 21:08
  */
 public class MissileAttackDecision extends AbstractActionDecision {
-    public MissileAttackDecision() {
-        super(Game::getMagicMissileManacost, ActionType.MAGIC_MISSILE);
+    private final Predicate<LivingUnit> predicate;
+
+    public MissileAttackDecision(int priority, Predicate<LivingUnit> predicate) {
+        super(priority, Game::getMagicMissileManacost, ActionType.MAGIC_MISSILE);
+
+        this.predicate = predicate;
     }
 
     @Override
@@ -30,10 +37,10 @@ public class MissileAttackDecision extends AbstractActionDecision {
         double r = self.getCastRange();
 
         return map.cd().unitsAt(x, y, r)
-                .filter(map::isEnemy)
+                .filter(predicate)
                 .filter(e -> Double.compare(abs(self.getAngleTo(e)), game.getStaffSector() / 2) <= 0)
-                .sorted((a, b) -> Integer.compare(a.getLife(), b.getLife()))
+                .sorted(Comparator.comparingInt(LivingUnit::getLife))
                 .limit(1)
-                .map(e -> CastAction.missile(MEDIUM, self.getAngleTo(e), self.getDistanceTo(e), self.getDistanceTo(e) + e.getRadius()));
+                .map(e -> CastAction.missile(priority, self.getAngleTo(e), self.getDistanceTo(e), self.getDistanceTo(e) + e.getRadius()));
     }
 }

@@ -15,6 +15,7 @@ import model.World;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import static model.SkillType.RANGE_BONUS_PASSIVE_1;
@@ -25,12 +26,22 @@ import static model.SkillType.RANGE_BONUS_PASSIVE_1;
  * @author Victor Polischuk
  * @since 14.11.2016 21:08
  */
-public class LevelUpDecision implements Decision {
+public class LevelUpDecision extends AbstractDecision {
     private static final Logger LOG = LoggerFactory.getLogger();
 
     private final Collection<SkillType> remaining = EnumSet.allOf(SkillType.class);
     private SkillType learnNext = RANGE_BONUS_PASSIVE_1;
     private int nextLevel = 1;
+
+    public LevelUpDecision(int priority) {
+        this(priority, RANGE_BONUS_PASSIVE_1);
+    }
+
+    public LevelUpDecision(int priority, SkillType startWith) {
+        super(priority);
+
+        this.learnNext = startWith;
+    }
 
     @Override
     public Stream<Action> decide(Wizard self, World world, Game game, Move move) {
@@ -40,7 +51,7 @@ public class LevelUpDecision implements Decision {
 
         GameMap map = GameMap.get(world);
 
-        SkillType learnNow = Arrays.stream(self.getMessages()).map(Message::getSkillToLearn).filter(e -> e != null).findAny().orElse(learnNext);
+        SkillType learnNow = Arrays.stream(self.getMessages()).map(Message::getSkillToLearn).filter(Objects::nonNull).findAny().orElse(learnNext);
 
         while (learnNow != null && !map.learnSkill(learnNow)) {
             learnNow = learnNext;
@@ -74,6 +85,6 @@ public class LevelUpDecision implements Decision {
             learnNext = remaining.iterator().next();
         }
 
-        return Stream.of(new LearnAction(ASAP, learnNow));
+        return Stream.of(new LearnAction(priority, learnNow));
     }
 }

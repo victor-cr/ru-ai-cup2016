@@ -19,6 +19,10 @@ import java.util.stream.Stream;
 public class CollisionMoveDecision extends AbstractMoveDecision {
     private static final double PADDING = 2.0D;
 
+    public CollisionMoveDecision(int priority) {
+        super(priority);
+    }
+
     @Override
     protected Stream<Action> doActions(Wizard self, World world, Game game, GameMap map) {
         Point me = new Point(self);
@@ -28,10 +32,10 @@ public class CollisionMoveDecision extends AbstractMoveDecision {
         if (stuck) {
             LOG.printf("Stuck%n");
 
-            Optional<Point> target = map.cd().unitsAt(self.getX(), self.getY(), self.getRadius() + PADDING).map(Point::new).map(e -> e.reflectTo(me)).reduce(Point::merge);
+            Optional<Point> target = map.cd().unitsAt(self.getX(), self.getY(), self.getRadius() + PADDING).map(Point::new).map(e -> me.shiftTo(e, self.getDistanceTo(e.x, e.y))).reduce(Point::merge);
 
             if (target.isPresent()) {
-                return go(self, target.get(), game, map, TOP);
+                return go(self, target.get(), game, map, priority);
             }
         }
 

@@ -8,6 +8,7 @@ import com.codegans.ai.cup2016.model.MoveHistory;
 import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.impl.CollisionDetectorImpl;
 import com.codegans.ai.cup2016.navigator.impl.NavigatorImpl;
+import model.Bonus;
 import model.Building;
 import model.BuildingType;
 import model.Faction;
@@ -25,12 +26,37 @@ import model.World;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Comparator;
+import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
-import static model.SkillType.*;
+import static model.SkillType.ADVANCED_MAGIC_MISSILE;
+import static model.SkillType.FIREBALL;
+import static model.SkillType.FROST_BOLT;
+import static model.SkillType.HASTE;
+import static model.SkillType.MAGICAL_DAMAGE_ABSORPTION_AURA_1;
+import static model.SkillType.MAGICAL_DAMAGE_ABSORPTION_AURA_2;
+import static model.SkillType.MAGICAL_DAMAGE_ABSORPTION_PASSIVE_1;
+import static model.SkillType.MAGICAL_DAMAGE_ABSORPTION_PASSIVE_2;
+import static model.SkillType.MAGICAL_DAMAGE_BONUS_AURA_1;
+import static model.SkillType.MAGICAL_DAMAGE_BONUS_AURA_2;
+import static model.SkillType.MAGICAL_DAMAGE_BONUS_PASSIVE_1;
+import static model.SkillType.MAGICAL_DAMAGE_BONUS_PASSIVE_2;
+import static model.SkillType.MOVEMENT_BONUS_FACTOR_AURA_1;
+import static model.SkillType.MOVEMENT_BONUS_FACTOR_AURA_2;
+import static model.SkillType.MOVEMENT_BONUS_FACTOR_PASSIVE_1;
+import static model.SkillType.MOVEMENT_BONUS_FACTOR_PASSIVE_2;
+import static model.SkillType.RANGE_BONUS_AURA_1;
+import static model.SkillType.RANGE_BONUS_AURA_2;
+import static model.SkillType.RANGE_BONUS_PASSIVE_1;
+import static model.SkillType.RANGE_BONUS_PASSIVE_2;
+import static model.SkillType.SHIELD;
+import static model.SkillType.STAFF_DAMAGE_BONUS_AURA_1;
+import static model.SkillType.STAFF_DAMAGE_BONUS_AURA_2;
+import static model.SkillType.STAFF_DAMAGE_BONUS_PASSIVE_1;
+import static model.SkillType.STAFF_DAMAGE_BONUS_PASSIVE_2;
 
 /**
  * JavaDoc here
@@ -58,10 +84,11 @@ public final class GameMap {
     private final Collection<Wizard> wizards = new ArrayList<>();
     private final Collection<Minion> minions = new ArrayList<>();
     private final Collection<Building> buildings = new ArrayList<>();
+    private final Collection<Bonus> bonuses = new ArrayList<>();
     private final Collection<Projectile> projectiles = new ArrayList<>();
     private final Navigator navigator;
     private final CollisionDetector cd;
-    private final FixedQueue<MoveHistory> intentions = new FixedQueue<>(new MoveHistory[5]);
+    private final FixedQueue<MoveHistory> intentions = new FixedQueue<>(new MoveHistory[2]);
     private World world;
     private double maxStandardTurnAngle;
     private double maxStandardForwardSpeed;
@@ -217,6 +244,10 @@ public final class GameMap {
         return wizards.stream();
     }
 
+    public Stream<Bonus> bonuses() {
+        return bonuses.stream();
+    }
+
     public Stream<Projectile> projectiles() {
         return projectiles.stream();
     }
@@ -225,16 +256,38 @@ public final class GameMap {
         return resurrected;
     }
 
-    public boolean isEnemy(LivingUnit unit) {
+    public boolean isVisible(Point point, double radius) {
+        return minions().filter(GameMap::isFriend)
+                .anyMatch(e -> Double.compare(e.getRadius() + e.getVisionRange(), e.getDistanceTo(point.x, point.y) - radius) < 0)
+                || wizards().filter(GameMap::isFriend)
+                .anyMatch(e -> Double.compare(e.getRadius() + e.getVisionRange(), e.getDistanceTo(point.x, point.y) - radius) < 0)
+                || towers().filter(GameMap::isFriend)
+                .anyMatch(e -> Double.compare(e.getRadius() + e.getVisionRange(), e.getDistanceTo(point.x, point.y) - radius) < 0);
+
+    }
+
+    public boolean isNotVisible(Point point, double radius) {
+        return minions().filter(GameMap::isFriend)
+                .noneMatch(e -> Double.compare(e.getRadius() + e.getVisionRange(), e.getDistanceTo(point.x, point.y) - radius) < 0)
+                && wizards().filter(GameMap::isFriend)
+                .noneMatch(e -> Double.compare(e.getRadius() + e.getVisionRange(), e.getDistanceTo(point.x, point.y) - radius) < 0)
+                && towers().filter(GameMap::isFriend)
+                .noneMatch(e -> Double.compare(e.getRadius() + e.getVisionRange(), e.getDistanceTo(point.x, point.y) - radius) < 0);
+
+    }
+
+    public static boolean isEnemy(LivingUnit unit) {
         return !isFriend(unit) && !isNeutral(unit);
     }
 
-    public boolean isFriend(LivingUnit unit) {
-        return unit.getFaction() == self.getFaction();
+    public static boolean isFriend(LivingUnit unit) {
+        return unit.getFaction() == instance.self.getFaction();
     }
 
-    public boolean isNeutral(LivingUnit unit) {
-        return unit.getFaction() == Faction.NEUTRAL || unit.getFaction() == Faction.OTHER;
+    public static boolean isNeutral(LivingUnit unit) {
+        Faction faction = unit.getFaction();
+
+        return faction == Faction.OTHER || faction == Faction.NEUTRAL && Double.compare(unit.getSpeedX(), 0) == 0 && Double.compare(unit.getSpeedX(), 0) == 0;
     }
 
     public int tick() {
@@ -246,7 +299,7 @@ public final class GameMap {
     }
 
     public Point home() {
-        return towers().filter(this::isFriend).filter(e -> e.getType() == BuildingType.FACTION_BASE).map(Point::new).findAny().orElse(new Point(0, 0));
+        return towers().filter(GameMap::isFriend).filter(e -> e.getType() == BuildingType.FACTION_BASE).map(Point::new).findAny().orElse(new Point(0, 0));
     }
 
     public LaneType lane() {
@@ -286,7 +339,7 @@ public final class GameMap {
     public Point nearestTower() {
         Wizard self = self();
 
-        return towers().filter(this::isFriend).sorted((l, r) -> Double.compare(self.getDistanceTo(l), self.getDistanceTo(r))).map(Point::new).findFirst().orElse(home());
+        return towers().filter(GameMap::isFriend).sorted(Comparator.comparingDouble(self::getDistanceTo)).map(Point::new).findFirst().orElse(home());
     }
 
     public Navigator navigator() {
@@ -309,31 +362,56 @@ public final class GameMap {
 
         version = world.getTickIndex();
 
-        trees.clear();
         wizards.clear();
         minions.clear();
+        bonuses.clear();
 
         stream(world.getWizards()).filter(Wizard::isMe).forEach(e -> self = e);
 
-        stream(world.getTrees()).filter(e -> e.getLife() > 0).forEach(trees::add);
         stream(world.getMinions()).filter(e -> e.getLife() > 0).forEach(minions::add);
         stream(world.getWizards()).filter(e -> e.getLife() > 0).filter(e -> !e.isMe()).forEach(wizards::add);
+        stream(world.getBonuses()).forEach(bonuses::add);
 
-        List<Building> invisible = towers()
-                .filter(e -> minions().filter(this::isFriend).noneMatch(x -> Double.compare(x.getRadius() + e.getVisionRange(), e.getDistanceTo(x)) < 0)
-                        || wizards().filter(this::isFriend).noneMatch(x -> Double.compare(x.getRadius() + e.getVisionRange(), e.getDistanceTo(x)) < 0))
-                .map(e -> new Building(e.getId(), e.getX(), e.getY(), e.getSpeedX(), e.getSpeedY(), e.getAngle(), e.getFaction(), e.getRadius(), e.getLife(), e.getMaxLife(), e.getStatuses(), e.getType(), e.getVisionRange(), e.getAttackRange(), e.getDamage(), e.getCooldownTicks(), 0))
-                .distinct().collect(Collectors.toList());
+        stream(world.getTrees()).filter(e -> e.getLife() > 0).forEach(trees::add);
 
-        List<Building> sure = Arrays.stream(world.getBuildings())
-                .filter(e -> e.getLife() > 0)
-                .collect(Collectors.toList());
+        Collection<Building> allTowers = keepInvisible(
+                towers(),
+                world.getBuildings(),
+                e -> new Building(e.getId(), e.getX(), e.getY(), e.getSpeedX(), e.getSpeedY(), e.getAngle(), e.getFaction(), e.getRadius(), e.getLife(), e.getMaxLife(), e.getStatuses(), e.getType(), e.getVisionRange(), e.getAttackRange(), e.getDamage(), e.getCooldownTicks(), 0));
 
+        Collection<Tree> allTrees = keepInvisible(
+                trees(),
+                world.getTrees(),
+                e -> e);
+
+        trees.clear();
         buildings.clear();
-        buildings.addAll(invisible);
-        buildings.addAll(sure);
+
+        trees.addAll(allTrees);
+        buildings.addAll(allTowers);
 
         return this;
+    }
+
+    private <T extends LivingUnit> Collection<T> keepInvisible(Stream<T> stream, T[] items, Function<T, T> mapper) {
+        Collection<T> results = new TreeSet<>((l, r) -> {
+            int result = Double.compare(l.getX(), r.getX());
+
+            if (result != 0) {
+                return result;
+            }
+
+            return Double.compare(l.getY(), r.getY());
+        });
+
+        results.addAll(Arrays.asList(items));
+
+        stream.filter(e -> isNotVisible(new Point(e), e.getRadius()))
+                .map(mapper)
+                .distinct()
+                .forEach(results::add);
+
+        return results;
     }
 
     private static double limit(double value, double max, double min) {
