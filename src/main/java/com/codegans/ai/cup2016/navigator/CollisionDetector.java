@@ -25,6 +25,8 @@ public interface CollisionDetector {
 
     boolean canPass(Point from, Point to, double radius);
 
+    boolean canShoot(Point from, Point to, double radius);
+
     boolean overlaps(Point from, Point to, double radius, LivingUnit unit);
 
     boolean contains(Point from, Point to, double radius, Point target);

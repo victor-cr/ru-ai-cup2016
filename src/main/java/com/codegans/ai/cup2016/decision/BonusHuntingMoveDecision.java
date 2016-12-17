@@ -51,9 +51,13 @@ public class BonusHuntingMoveDecision extends AbstractMoveDecision {
 
             LOG.printf("Bonus hunt!!! The bonus is coming in: %d tick(s)%n", ticksToBonus);
 
-            Point bonus = target.get().shiftTo(new Point(self), distance);
+            Point bonus = target.get();
 
-            if (ticksToBonus > THRESHOLD_TIME && Double.compare(bonus.distanceTo(new Point(self)), self.getVisionRange()) < 0 && map.bonuses().noneMatch(e -> e.getX() == bonus.x && e.getY() == bonus.y)) {
+            if (map.bonuses().anyMatch(e -> e.getX() == bonus.x && e.getY() == bonus.y) && self.getDistanceTo(bonus.x, bonus.y) < self.getVisionRange()) {
+                return Stream.empty();
+            }
+
+            if (ticksToBonus > THRESHOLD_TIME && ticksToBonus < interval && map.isVisible(bonus, game.getBonusRadius()) && map.bonuses().noneMatch(e -> e.getX() == bonus.x && e.getY() == bonus.y)) {
                 checkedAt = tickIndex;
 
                 LOG.printf("Bonus has been taken: %s%n", bonus);
@@ -61,7 +65,7 @@ public class BonusHuntingMoveDecision extends AbstractMoveDecision {
                 return Stream.empty();
             }
 
-            return turnAndGo(self, bonus, game, map, priority);
+            return turnAndGo(self, bonus.shiftTo(new Point(self), distance), game, map, priority);
         }
 
         return Stream.empty();

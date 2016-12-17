@@ -61,6 +61,11 @@ public class CollisionDetectorImpl implements CollisionDetector {
     }
 
     @Override
+    public boolean canShoot(Point from, Point to, double radius) {
+        return treeStreamSupplier.get().noneMatch(e -> overlaps(from, to, radius, e));
+    }
+
+    @Override
     public boolean overlaps(Point from, Point to, double radius, LivingUnit unit) {
         return lineIntersect(radius, from.x, from.y, to.x, to.y, unit.getX(), unit.getY(), unit.getRadius());
     }

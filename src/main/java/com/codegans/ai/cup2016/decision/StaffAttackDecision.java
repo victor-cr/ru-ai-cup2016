@@ -21,12 +21,14 @@ import static java.lang.StrictMath.abs;
  * @since 14.11.2016 21:08
  */
 public class StaffAttackDecision extends AbstractActionDecision {
+    private final boolean attackNeutrals;
     private final Predicate<LivingUnit> predicate;
 
-    public StaffAttackDecision(int priority, Predicate<LivingUnit> predicate) {
+    public StaffAttackDecision(int priority, boolean attackNeutrals) {
         super(priority, game -> 0, ActionType.STAFF);
 
-        this.predicate = predicate;
+        this.attackNeutrals = attackNeutrals;
+        this.predicate = attackNeutrals ? GameMap::isNeutral : GameMap::isEnemy;
     }
 
     @Override
@@ -36,6 +38,10 @@ public class StaffAttackDecision extends AbstractActionDecision {
         double r = game.getStaffRange();
 
         double sector = game.getStaffSector() / 2;
+
+//        if (attackNeutrals && map.cd().unitsAt(x, y, self.getCastRange()).anyMatch(GameMap::isEnemy)) {
+//            return Stream.empty();
+//        }
 
         return map.cd().unitsAt(x, y, r)
                 .filter(predicate)

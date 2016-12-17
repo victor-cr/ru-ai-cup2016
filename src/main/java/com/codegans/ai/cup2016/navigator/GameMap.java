@@ -3,7 +3,7 @@ package com.codegans.ai.cup2016.navigator;
 import com.codegans.ai.cup2016.action.MoveAction;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
-import com.codegans.ai.cup2016.model.CheckPoint;
+import com.codegans.ai.cup2016.model.Checkpoint;
 import com.codegans.ai.cup2016.model.MoveHistory;
 import com.codegans.ai.cup2016.model.Point;
 import com.codegans.ai.cup2016.navigator.impl.CollisionDetectorImpl;
@@ -23,10 +23,12 @@ import model.Tree;
 import model.Wizard;
 import model.World;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -74,6 +76,22 @@ public final class GameMap {
             {MOVEMENT_BONUS_FACTOR_PASSIVE_1, MOVEMENT_BONUS_FACTOR_AURA_1, MOVEMENT_BONUS_FACTOR_PASSIVE_2, MOVEMENT_BONUS_FACTOR_AURA_2, HASTE},
             {MAGICAL_DAMAGE_ABSORPTION_PASSIVE_1, MAGICAL_DAMAGE_ABSORPTION_AURA_1, MAGICAL_DAMAGE_ABSORPTION_PASSIVE_2, MAGICAL_DAMAGE_ABSORPTION_AURA_2, SHIELD}
     };
+    // Each element is 500x500 points
+    //  ..a.b.c.d.e.f.g.h..
+    // 1. T T T T T T T   .1
+    // 2. T           M B .2
+    // 3. T         M   B .3
+    // 4. T       M     B .4
+    // 5. T     M       B .5
+    // 6. T   M         B .6
+    // 7. T M           B .7
+    // 8.   B B B B B B B .8
+    //  ..a.b.c.d.e.f.g.h..
+    private static final Checkpoint[][] LANES = {
+            Checkpoint.createLane("a7", "a6", "a5", "a4", "a3", "a2", "a1", "b1", "c1", "d1", "e1", "f1", "g1"),
+            Checkpoint.createLane("b7", "c6", "d5", "e4", "f3", "g2"),
+            Checkpoint.createLane("b8", "c8", "d8", "e8", "f8", "g8", "h8", "h7", "h6", "h5", "h4", "h3", "h2")
+    };
 
     private static GameMap instance;
 
@@ -89,6 +107,7 @@ public final class GameMap {
     private final Navigator navigator;
     private final CollisionDetector cd;
     private final FixedQueue<MoveHistory> intentions = new FixedQueue<>(new MoveHistory[2]);
+    private final Deque<Point> stack = new ArrayDeque<>();
     private World world;
     private double maxStandardTurnAngle;
     private double maxStandardForwardSpeed;
@@ -153,6 +172,14 @@ public final class GameMap {
 
     public void action(MoveAction action) {
         intentions.offer(new MoveHistory(new Point(self), action.speed(), action.strafe(), action.turn()));
+    }
+
+    public void savepoint(Point target) {
+        stack.push(target);
+    }
+
+    public Point savepoint() {
+        return stack.pop();
     }
 
     public double limitAngle(double angle) {
@@ -287,7 +314,7 @@ public final class GameMap {
     public static boolean isNeutral(LivingUnit unit) {
         Faction faction = unit.getFaction();
 
-        return faction == Faction.OTHER || faction == Faction.NEUTRAL && Double.compare(unit.getSpeedX(), 0) == 0 && Double.compare(unit.getSpeedX(), 0) == 0;
+        return faction == Faction.OTHER || faction == Faction.NEUTRAL && Double.compare(unit.getSpeedX(), 0) == 0 && Double.compare(unit.getSpeedY(), 0) == 0;
     }
 
     public int tick() {
@@ -310,30 +337,8 @@ public final class GameMap {
         this.lane = lane;
     }
 
-    public Collection<CheckPoint> checkpoints() {
-        return Arrays.asList(
-                new CheckPoint(new Point(200, 3800), LaneType.TOP),
-                new CheckPoint(new Point(200, 2700), LaneType.TOP),
-                new CheckPoint(new Point(200, 1600), LaneType.TOP),
-                new CheckPoint(new Point(350, 350), LaneType.TOP),
-                new CheckPoint(new Point(1600, 200), LaneType.TOP),
-                new CheckPoint(new Point(2700, 200), LaneType.TOP),
-                new CheckPoint(new Point(3800, 200), LaneType.TOP),
-
-                new CheckPoint(new Point(200, 3800), LaneType.MIDDLE),
-                new CheckPoint(new Point(1200, 2800), LaneType.MIDDLE),
-                new CheckPoint(new Point(2000, 2000), LaneType.MIDDLE),
-                new CheckPoint(new Point(2800, 1200), LaneType.MIDDLE),
-                new CheckPoint(new Point(3800, 200), LaneType.MIDDLE),
-
-                new CheckPoint(new Point(200, 3800), LaneType.BOTTOM),
-                new CheckPoint(new Point(1600, 3800), LaneType.BOTTOM),
-                new CheckPoint(new Point(2700, 3800), LaneType.BOTTOM),
-                new CheckPoint(new Point(3650, 3650), LaneType.BOTTOM),
-                new CheckPoint(new Point(3800, 2700), LaneType.BOTTOM),
-                new CheckPoint(new Point(3800, 1600), LaneType.BOTTOM),
-                new CheckPoint(new Point(3800, 200), LaneType.BOTTOM)
-        );
+    public Collection<Checkpoint> checkpoints(LaneType lane) {
+        return new ArrayList<>(Arrays.asList(LANES[lane.ordinal()]));
     }
 
     public Point nearestTower() {

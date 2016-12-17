@@ -3,16 +3,18 @@ package com.codegans.ai.cup2016;
 import com.codegans.ai.cup2016.action.Action;
 import com.codegans.ai.cup2016.action.MoveAction;
 import com.codegans.ai.cup2016.decision.AvoidMinionWaveMoveDecision;
-import com.codegans.ai.cup2016.decision.BattleMoveDecision;
 import com.codegans.ai.cup2016.decision.BonusHuntingMoveDecision;
 import com.codegans.ai.cup2016.decision.BonusMoveDecision;
 import com.codegans.ai.cup2016.decision.CheckpointMoveDecision;
 import com.codegans.ai.cup2016.decision.CollisionMoveDecision;
+import com.codegans.ai.cup2016.decision.DangerousBattleMoveDecision;
 import com.codegans.ai.cup2016.decision.Decision;
+import com.codegans.ai.cup2016.decision.FairBattleMoveDecision;
 import com.codegans.ai.cup2016.decision.LevelUpDecision;
 import com.codegans.ai.cup2016.decision.MissileAttackDecision;
 import com.codegans.ai.cup2016.decision.NeoMoveDecision;
 import com.codegans.ai.cup2016.decision.RetreatMoveDecision;
+import com.codegans.ai.cup2016.decision.SafeBattleMoveDecision;
 import com.codegans.ai.cup2016.decision.StaffAttackDecision;
 import com.codegans.ai.cup2016.log.Logger;
 import com.codegans.ai.cup2016.log.LoggerFactory;
@@ -53,13 +55,15 @@ public class StrategyDelegate {
     private final Collection<Decision> decisions = Arrays.asList(
             new RetreatMoveDecision(MOVE_TO_SAFETY),
             new CollisionMoveDecision(MOVE_TO_UNBLOCK),
-            new BattleMoveDecision(MOVE_TO_FIGHT),
+            new FairBattleMoveDecision(MOVE_TO_FIGHT),
+            new DangerousBattleMoveDecision(MOVE_TO_FIGHT),
+            new SafeBattleMoveDecision(MOVE_TO_FIGHT),
             new CheckpointMoveDecision(MOVE_TO_CHECKPOINT),
             new LevelUpDecision(LEVEL_UP),
-            new StaffAttackDecision(ATTACK_MELEE, GameMap::isEnemy),
-            new StaffAttackDecision(CLEAN_MELEE, GameMap::isNeutral),
-            new MissileAttackDecision(ATTACK_MISSILE, GameMap::isEnemy),
-            new MissileAttackDecision(CLEAN_MISSILE, GameMap::isNeutral),
+            new StaffAttackDecision(ATTACK_MELEE, false),
+            new StaffAttackDecision(CLEAN_MELEE, true),
+            new MissileAttackDecision(ATTACK_MISSILE, false),
+            new MissileAttackDecision(CLEAN_MISSILE, true),
             new AvoidMinionWaveMoveDecision(MOVE_TO_AVOID),
             new NeoMoveDecision(MOVE_TO_AVOID),
             new BonusHuntingMoveDecision(MOVE_TO_BONUS),

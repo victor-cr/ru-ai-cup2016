@@ -10,6 +10,7 @@ import model.Wizard;
 import model.World;
 
 import java.util.Comparator;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -22,12 +23,14 @@ import static java.lang.StrictMath.abs;
  * @since 14.11.2016 21:08
  */
 public class MissileAttackDecision extends AbstractActionDecision {
+    private final boolean attackNeutrals;
     private final Predicate<LivingUnit> predicate;
 
-    public MissileAttackDecision(int priority, Predicate<LivingUnit> predicate) {
+    public MissileAttackDecision(int priority, boolean attackNeutrals) {
         super(priority, Game::getMagicMissileManacost, ActionType.MAGIC_MISSILE);
 
-        this.predicate = predicate;
+        this.attackNeutrals = attackNeutrals;
+        this.predicate = attackNeutrals ? GameMap::isNeutral : GameMap::isEnemy;
     }
 
     @Override
@@ -35,6 +38,22 @@ public class MissileAttackDecision extends AbstractActionDecision {
         double x = self.getX();
         double y = self.getY();
         double r = self.getCastRange();
+
+//        if (attackNeutrals && map.cd().unitsAt(x, y, r).anyMatch(GameMap::isEnemy)) {
+//            return Stream.empty();
+//        }
+
+        Optional<LivingUnit> closest = map.cd().unitsAt(x, y, r / 3)
+                .filter(predicate)
+                .filter(e -> Double.compare(abs(self.getAngleTo(e)), game.getStaffSector() / 2) <= 0)
+                .sorted(Comparator.comparingDouble(self::getDistanceTo))
+                .findFirst();
+
+        if (closest.isPresent()) {
+            LivingUnit enemy = closest.get();
+
+            return Stream.of(CastAction.missile(priority, self.getAngleTo(enemy), self.getDistanceTo(enemy), self.getDistanceTo(enemy) + enemy.getRadius()));
+        }
 
         return map.cd().unitsAt(x, y, r)
                 .filter(predicate)

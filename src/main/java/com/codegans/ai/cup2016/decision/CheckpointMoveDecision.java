@@ -1,7 +1,7 @@
 package com.codegans.ai.cup2016.decision;
 
 import com.codegans.ai.cup2016.action.Action;
-import com.codegans.ai.cup2016.model.Point;
+import com.codegans.ai.cup2016.model.Checkpoint;
 import com.codegans.ai.cup2016.navigator.GameMap;
 import model.Game;
 import model.LaneType;
@@ -22,9 +22,7 @@ import java.util.stream.Stream;
  * @since 18/11/2016 20:09
  */
 public class CheckpointMoveDecision extends AbstractMoveDecision {
-    private static final double CHECKPOINT_PADDING = 250;
-
-    private final List<Point> checkpoints = new ArrayList<>();
+    private final List<Checkpoint> checkpoints = new ArrayList<>();
     private final LaneType random;
     private LaneType current = null;
 
@@ -46,38 +44,33 @@ public class CheckpointMoveDecision extends AbstractMoveDecision {
             reassess(map, requested);
         }
 
-        Point target = setupTarget(self, map);
+        Checkpoint target = setupTarget(self, map);
 
-        return turnAndGo(self, target, game, map, priority);
+        return turnAndGo(self, target.center, game, map, priority);
     }
 
     private void reassess(GameMap map, LaneType requested) {
         current = requested;
 
         checkpoints.clear();
-
-        map.checkpoints().stream().filter(e -> e.lane == requested).map(e -> e.checkpoint).forEach(checkpoints::add);
+        checkpoints.addAll(map.checkpoints(requested));
 
         map.lane(current);
 
         LOG.printf("New requested lane: %s%n", current);
     }
 
-    private Point setupTarget(Wizard self, GameMap map) {
-        Point checkpoint = checkpoints.get(0);
+    private Checkpoint setupTarget(Wizard self, GameMap map) {
+        Checkpoint checkpoint = checkpoints.get(0);
 
-        if (checkpoints.size() > 1 && isCheckpointTaken(self, checkpoint, map)) {
+        if (checkpoints.size() > 1 && checkpoint.isTaken(self)) {
             checkpoints.remove(0);
 
             checkpoint = checkpoints.get(0);
         }
 
-        LOG.logTarget(checkpoint, map.tick());
+        LOG.logTarget(checkpoint.center, map.tick());
 
         return checkpoint;
-    }
-
-    private boolean isCheckpointTaken(Wizard self, Point checkpoint, GameMap map) {
-        return map.cd().isNear(checkpoint.x, checkpoint.y, CHECKPOINT_PADDING, self);
     }
 }

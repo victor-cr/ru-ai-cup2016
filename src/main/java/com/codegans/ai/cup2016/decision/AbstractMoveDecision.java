@@ -30,7 +30,7 @@ import static java.lang.StrictMath.sin;
  * @since 18/11/2016 20:09
  */
 public abstract class AbstractMoveDecision extends AbstractDecision {
-    private static final double PADDING = 10.0D;
+    private static final double ORC_PADDING = 20.0D;
 
     public AbstractMoveDecision(int priority) {
         super(priority);
@@ -140,7 +140,7 @@ public abstract class AbstractMoveDecision extends AbstractDecision {
             turnAngle = game.getMinionMaxTurnAngle();
 
             if (enemy.getType() == MinionType.ORC_WOODCUTTER) {
-                attackRange = game.getOrcWoodcutterAttackRange() + PADDING;
+                attackRange = game.getOrcWoodcutterAttackRange() + ORC_PADDING;
                 dangerAngle = game.getOrcWoodcutterAttackSector() / 2;
             } else {
                 attackRange = game.getFetishBlowdartAttackRange();
